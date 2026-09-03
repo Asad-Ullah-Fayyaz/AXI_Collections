@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Transactional pages carry no search value and change per-session.
+Disallow: /cart
+Disallow: /checkout
+Disallow: /profile
+Disallow: /order-confirmation
+
+# NOTE: admin routes are deliberately NOT listed here. robots.txt is public,
+# so listing them would advertise them. They are excluded from search instead
+# via a noindex meta tag on the admin pages themselves.
+
+# TODO: replace with the real production domain before launch.
+Sitemap: https://axicollection.com/sitemap.xml

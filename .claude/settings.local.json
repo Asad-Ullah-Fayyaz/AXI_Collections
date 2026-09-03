@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs wc -l)",
+      "Bash(grep -iE \"env|git|readme|md$\")",
+      "Bash(node -e \"for\\(const p of ['package.json','backend/package.json','frontend/package.json']\\){const j=JSON.parse\\(require\\('fs'\\).readFileSync\\(p,'utf8'\\)\\);console.log\\(p, '->', JSON.stringify\\(j.dependencies||{}\\)\\)}\")",
+      "Bash(npm uninstall *)",
+      "Bash(node -e ' *)",
+      "Bash(npm run *)",
+      "Bash(node --check backend/src/utils/seedData.js)"
+    ]
+  }
+}
