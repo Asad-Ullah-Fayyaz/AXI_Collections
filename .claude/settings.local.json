@@ -7,7 +7,25 @@
       "Bash(npm uninstall *)",
       "Bash(node -e ' *)",
       "Bash(npm run *)",
-      "Bash(node --check backend/src/utils/seedData.js)"
+      "Bash(node --check backend/src/utils/seedData.js)",
+      "WebFetch(domain:nodenza.com)",
+      "Bash(node -e \"console.log\\('installed express-rate-limit:', require\\('./node_modules/express-rate-limit/package.json'\\).version\\)\")",
+      "Bash(node -e \"console.log\\('installed express-validator:', require\\('./node_modules/express-validator/package.json'\\).version\\)\")",
+      "Bash(node -e \"console.log\\(require\\('/e/AXI_Collections/node_modules/express-rate-limit/package.json'\\).version\\)\")",
+      "Bash(node -e \"console.log\\(require\\('/e/AXI_Collections/backend/node_modules/express-rate-limit/package.json'\\).version\\)\")",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/bcryptjs/package.json'\\).version\\)\")",
+      "Bash(node -e \"console.log\\('rate-limit:', require\\('./node_modules/express-rate-limit/package.json'\\).version\\); console.log\\('validator:', require\\('./node_modules/express-validator/package.json'\\).version\\)\")",
+      "Bash(read f *)",
+      "Bash(node -e 'console.log\\(require\\('\\\\''__TRACKED_VAR__'\\\\''\\).version\\)')",
+      "Bash(echo \"--- exit: $? \\(1 = no hits\\) ---\")",
+      "Bash(node -e \"console.log\\('express:', require\\('./node_modules/express/package.json'\\).version\\)\")",
+      "Bash(node --check backend/src/controllers/authController.js)",
+      "Bash(node --check backend/src/routes/authRoutes.js)",
+      "Bash(node --check backend/src/models/User.js)",
+      "Bash(node --check backend/src/config/constants.js)",
+      "Bash(tee /tmp/jwtsites.txt)",
+      "Read(//tmp/**)",
+      "Bash(node __admincheck.js)"
     ]
   }
 }

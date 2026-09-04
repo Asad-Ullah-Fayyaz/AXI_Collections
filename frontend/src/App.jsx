@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 
@@ -18,6 +18,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 
+import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminOrders from './pages/AdminOrders';
 import AdminProducts from './pages/AdminProducts';
@@ -33,11 +34,35 @@ const RequireAuth = ({ children }) => {
   return children;
 };
 
+// Shown to a signed-in customer who reaches an /admin URL.
+//
+// Deliberately honest rather than a fake 404. Faking one would not hide anything:
+// every admin path is already in the production JS bundle, an anonymous visitor is
+// sent to a working /admin/login either way, and — because the catch-all below
+// REDIRECTS to / — a 404 rendered in place at /admin/orders would look nothing like
+// a genuinely unknown URL, so the disguise would advertise the very route it was
+// meant to conceal.
+const NoAccess = () => (
+  <div className="container" style={{ padding: '6rem 1.5rem', maxWidth: '520px', textAlign: 'center' }}>
+    <span className="text-uppercase-tracking" style={{ color: 'var(--text-muted)' }}>RESTRICTED</span>
+    <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', marginTop: '0.25rem' }}>No access to this area</h1>
+    <p style={{ color: 'var(--text-secondary)', marginTop: '1rem', fontSize: '0.9rem', lineHeight: 1.7 }}>
+      This section is limited to store administrators. If you believe you should have
+      access, please contact the store owner.
+    </p>
+    <Link to="/" className="btn btn-primary" style={{ marginTop: '2rem' }}>Return to Store</Link>
+  </div>
+);
+
 // Protected Route for Admin Users
 const RequireAdmin = ({ children }) => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '6rem' }}><div className="spinner"></div></div>;
-  if (!isAuthenticated || !isAdmin) return <Navigate to="/login" replace />;
+  // Not signed in at all → the admin door, not the customer one. Sending an
+  // administrator to /login used to strand them: that page no longer routes admins
+  // anywhere near the console.
+  if (!isAuthenticated) return <Navigate to="/admin/login" replace />;
+  if (!isAdmin) return <NoAccess />;
   return children;
 };
 
@@ -70,7 +95,9 @@ export default function App() {
                   </RequireAuth>
                 } />
 
-                {/* Protected Admin Console Routes */}
+                {/* Admin console. Unlinked from the storefront by design; the
+                    backend, not the URL, is what actually enforces access. */}
+                <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/admin" element={
                   <RequireAdmin>
                     <AdminDashboard />

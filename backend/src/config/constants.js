@@ -4,6 +4,17 @@
  */
 
 module.exports = {
+  SECURITY: {
+    // Cost factor for EVERY bcrypt hash in this application. models/User.js uses it
+    // in its pre('save') hook; controllers/authController.js uses it to build the
+    // dummy hash that keeps admin-login response time constant. Both must read it
+    // from here. bcryptjs derives the cost from the hash prefix, so if the two ever
+    // drift apart the dummy comparison finishes at a visibly different speed than a
+    // real one and reintroduces the account-enumeration timing oracle it exists to
+    // close.
+    BCRYPT_SALT_ROUNDS: 10,
+  },
+
   SHIPPING: {
     FREE_SHIPPING_THRESHOLD: 20000, // PKR — free shipping over this subtotal
     STANDARD_SHIPPING_COST: 350, // PKR — flat rate below the threshold

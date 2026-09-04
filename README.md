@@ -63,7 +63,24 @@ before clearing the terminal. To pin them across re-seeds during development, se
 The seeder refuses to run when `NODE_ENV=production`, because it deletes every user,
 category, and product first.
 
-**5. Start both servers:**
+**5. Sign in.** Customers use `/login`. Administrators use a separate page at
+`/admin/login`, which is not linked from anywhere on the storefront and is not
+offered on the customer login form. Signing in with a customer account at
+`/admin/login` fails with the same generic "Invalid credentials" the wrong password
+gives — deliberately, so the endpoint cannot be used to discover which email
+addresses exist or which of them are administrators. When a sign-in you expect to
+work is rejected, read the backend console: it logs which of the three cases it
+actually was.
+
+There is no code path anywhere that grants an existing account the `admin` role —
+`POST /api/auth/register` hard-codes `role: 'customer'`. Besides re-seeding, the only
+way to promote someone is directly in the database:
+
+```bash
+mongosh "$MONGO_URI" --eval 'db.users.updateOne({ email: "owner@example.com" }, { $set: { role: "admin" } })'
+```
+
+**6. Start both servers:**
 
 ```bash
 npm run dev
@@ -130,6 +147,15 @@ hardcode them in components.
 - **Auth** is JWT bearer tokens, sent in the `Authorization` header. Admin routes are
   protected by `protect` + `requireAdmin` middleware. The `/admin` URL is *not* a
   security boundary — authorization is enforced server-side on every admin route.
+- **`POST /api/auth/admin-login` is a separate door, not a separate privilege.** The
+  token it issues is identical to the one `/api/auth/login` issues; `protect` re-reads
+  the user from MongoDB on every request and `requireAdmin` checks *that* row's role.
+  Do not add claims to the admin token, and do not weaken `requireAdmin` on the
+  assumption that reaching the admin endpoint proves anything about the caller.
+- **All three admin-login failure modes return the same response.** Unknown email,
+  wrong password, and a valid customer account are indistinguishable to the client,
+  and a bcrypt comparison runs on every request — against a dummy hash when no
+  account matches — so response time does not leak which case occurred either.
 - **Prices are computed server-side only.** `POST /api/orders` ignores any price sent
   by the client and recalculates from the database. Never change this.
 - **Stock is deducted atomically** via a conditional `findOneAndUpdate`, with a

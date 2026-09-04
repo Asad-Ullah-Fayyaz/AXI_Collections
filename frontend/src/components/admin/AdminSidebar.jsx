@@ -1,10 +1,11 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Package, Layers, ShoppingBag, Users, Home, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function AdminSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { logout } = useAuth();
 
   const links = [
@@ -55,7 +56,10 @@ export default function AdminSidebar() {
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8rem', color: '#aaa' }}>
           <Home size={16} /> View Storefront
         </Link>
-        <button onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8rem', color: '#ff6666', textAlign: 'left' }}>
+        {/* Navigate explicitly. Left to itself, clearing the session re-runs
+            RequireAdmin, which would bounce the user straight back onto the admin
+            sign-in form — signing out should land on the storefront. */}
+        <button onClick={() => { logout(); navigate('/', { replace: true }); }} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8rem', color: '#ff6666', textAlign: 'left' }}>
           <LogOut size={16} /> Exit Admin
         </button>
       </div>

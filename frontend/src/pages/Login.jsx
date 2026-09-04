@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, Mail, ArrowRight } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -23,11 +22,9 @@ export default function Login() {
     try {
       const res = await login(email, password);
       if (res.success) {
-        if (res.user.role === 'admin') {
-          navigate('/admin');
-        } else {
-          navigate(redirectPath);
-        }
+        // No admin branch here on purpose. Administrators sign in at /admin/login;
+        // this page is the customer door and must not hint that another one exists.
+        navigate(redirectPath);
       }
     } catch (err) {
       setErrorMsg(err.message || 'Login failed. Please check your email and password.');

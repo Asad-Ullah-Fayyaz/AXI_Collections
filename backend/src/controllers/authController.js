@@ -1,9 +1,24 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { sendPasswordResetEmail } = require('../services/emailService');
 const { config } = require('../config/env');
+const { SECURITY } = require('../config/constants');
 const logger = require('../utils/logger');
+
+// SECURITY: compared against when no account matches the submitted email, so that a
+// rejected admin login takes the same wall-clock time whether or not that email is
+// real. Built at module load from fresh random bytes — never hardcoded, never read
+// from the environment, never pasted in. bcryptjs reads the cost factor out of the
+// hash prefix and short-circuits to `false` in microseconds for any string that is
+// not a well-formed 60-character hash, so a stray newline or a cost that drifts from
+// the one models/User.js hashes with would silently turn this defence back into the
+// enumeration oracle it exists to close. Both read SECURITY.BCRYPT_SALT_ROUNDS.
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync(
+  crypto.randomBytes(32).toString('hex'),
+  SECURITY.BCRYPT_SALT_ROUNDS
+);
 
 const sendTokenResponse = (user, statusCode, res) => {
   const token = jwt.sign(
@@ -93,6 +108,65 @@ exports.login = async (req, res, next) => {
       });
     }
 
+    sendTokenResponse(user, 200, res);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Administrator login for the /admin console
+// @route   POST /api/auth/admin-login
+// @access  Public
+//
+// This endpoint exists so the storefront login page never has to offer an "Admin
+// Login" option. It is a separate DOOR and an audit point — it is NOT the
+// authorization boundary. Authorization lives entirely in middleware/auth.js:
+// `protect` re-reads the user from MongoDB on every request and `requireAdmin`
+// checks that database row's role, so the token minted here carries exactly the
+// same authority as one minted by POST /api/auth/login and nothing more. Do not
+// grant this token extra claims, and do not relax requireAdmin on the assumption
+// that reaching this route proves anything about the caller.
+exports.adminLogin = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter your email address and password'
+      });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+
+    // SECURITY: run a bcrypt comparison on EVERY request, against the real account's
+    // hash whenever one exists, so the unknown-email, wrong-password and
+    // not-an-administrator paths are indistinguishable by response time. Do not
+    // switch this to user.matchPassword(password) — that throws on a null user, and
+    // the 500 it produces would itself be a flawless account-existence oracle.
+    const storedHash = user && user.password ? user.password : DUMMY_PASSWORD_HASH;
+    const isMatch = await bcrypt.compare(password, storedHash);
+
+    // SECURITY: one identical generic reply for all three failure modes. What
+    // actually went wrong goes to the server log and never to the client — the same
+    // split that requireAdmin and forgotPassword already use.
+    if (!user || !isMatch) {
+      logger.warn('Admin login failed: invalid credentials', user ? { userId: user._id } : undefined);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+
+    if (user.role !== 'admin') {
+      logger.warn('Admin login denied: account is not an administrator', { userId: user._id });
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+
+    logger.info('Admin login succeeded', { userId: user._id });
     sendTokenResponse(user, 200, res);
   } catch (error) {
     next(error);
