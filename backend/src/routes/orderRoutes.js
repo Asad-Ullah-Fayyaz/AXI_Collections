@@ -5,16 +5,20 @@ const {
   getOrderByOrderId,
   trackOrderPublic
 } = require('../controllers/orderController');
-const { protect } = require('../middleware/auth');
+const { protect, optionalAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const { createOrderRules } = require('../middleware/validators');
 
 const router = express.Router();
 
-router.post('/track', trackOrderPublic); // Public route
+// Public route for order tracking
+router.post('/track', trackOrderPublic);
 
-router.use(protect); // Protected customer routes
-router.post('/', createOrderRules, validate, createOrder);
+// Guest & Customer order creation (optionalAuth attaches user if logged in, but allows guests)
+router.post('/', optionalAuth, createOrderRules, validate, createOrder);
+
+// Protected customer routes
+router.use(protect);
 router.get('/my-orders', getMyOrders);
 router.get('/:orderId', getOrderByOrderId);
 

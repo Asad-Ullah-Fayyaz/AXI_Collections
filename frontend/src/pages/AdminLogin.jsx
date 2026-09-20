@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   // Local to this component. The `loading` on the context means "the initial session
   // check hasn't finished", is set false exactly once, and can never represent a
@@ -22,6 +23,10 @@ export default function AdminLogin() {
   const [submitting, setSubmitting] = useState(false);
 
   const { adminLogin, isAuthenticated, isAdmin, loading } = useAuth();
+
+  const togglePasswordVisibility = () => {
+    setShowPassword((prev) => !prev);
+  };
   const navigate = useNavigate();
 
   // Wait for the session rehydration in AuthContext to settle before deciding
@@ -93,16 +98,39 @@ export default function AdminLogin() {
 
         <div className="form-group">
           <label className="form-label" htmlFor="admin-password">Password</label>
-          <input
-            id="admin-password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-            className="form-input"
-            placeholder="Enter your password"
-          />
+          <div style={{ position: 'relative' }}>
+            <input
+              id="admin-password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              className="form-input"
+              placeholder="Enter your password"
+              style={{ paddingRight: '44px' }}
+            />
+            <button
+              type="button"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              onClick={togglePasswordVisibility}
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                padding: 0
+              }}
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
         </div>
 
         <button type="submit" disabled={submitting} className="btn btn-primary btn-full" style={{ marginTop: '1.5rem', padding: '0.9rem' }}>

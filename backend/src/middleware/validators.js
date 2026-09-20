@@ -118,8 +118,8 @@ const productRules = [
   body("description")
     .optional()
     .trim()
-    .isLength({ min: 10, max: 5000 })
-    .withMessage("Description must be 10-5000 characters"),
+    .isLength({ min: 1, max: 5000 })
+    .withMessage("Description must be 1-5000 characters"),
   body("price")
     .optional({ checkFalsy: false })
     .custom(
@@ -156,6 +156,29 @@ const productRules = [
   body("images.*").optional().trim().isLength({ max: 2048 }).isString(),
   body("isFeatured").optional().isBoolean().customSanitizer(Boolean),
   body("isActive").optional().isBoolean().customSanitizer(Boolean),
+  body("onSale").optional().isBoolean(),
+  body("previousPrice")
+    .optional({ nullable: true, checkFalsy: true })
+    .isFloat({ gt: 0 })
+    .withMessage("Previous price must be a positive number")
+    .customSanitizer((v) => (v === "" || v === null ? undefined : Number(v))),
+  body().custom((body) => {
+    if (body.onSale !== true && body.onSale !== "true") return true;
+    const salePrice = Number(body.price);
+    const previousPrice = Number(body.previousPrice);
+    if (!Number.isFinite(previousPrice) || previousPrice <= 0) {
+      throw new Error(
+        "Previous price is required when the product is on sale",
+      );
+    }
+    if (!Number.isFinite(salePrice) || salePrice <= 0) {
+      throw new Error("Sale price must be a positive number");
+    }
+    if (salePrice >= previousPrice) {
+      throw new Error("Sale price must be less than the previous price");
+    }
+    return true;
+  }),
 ];
 
 const createProductRules = [
@@ -168,7 +191,8 @@ const createProductRules = [
     .trim()
     .notEmpty()
     .withMessage("Description is required")
-    .isLength({ min: 10, max: 5000 }),
+    .isLength({ min: 1, max: 5000 })
+    .withMessage("Description must be between 1 - 5000 characters"),
   body("price")
     .exists({ checkFalsy: true })
     .isFloat({ gt: 0 })
@@ -186,6 +210,29 @@ const createProductRules = [
   body("subCategory").optional({ checkFalsy: true }).isMongoId(),
   body("images").optional().isArray({ max: 8 }),
   body("images.*").optional().trim().isString().isLength({ max: 2048 }),
+  body("onSale").optional().isBoolean(),
+  body("previousPrice")
+    .optional({ nullable: true, checkFalsy: true })
+    .isFloat({ gt: 0 })
+    .withMessage("Previous price must be a positive number")
+    .customSanitizer((v) => (v === "" || v === null ? undefined : Number(v))),
+  body().custom((body) => {
+    if (body.onSale !== true && body.onSale !== "true") return true;
+    const salePrice = Number(body.price);
+    const previousPrice = Number(body.previousPrice);
+    if (!Number.isFinite(previousPrice) || previousPrice <= 0) {
+      throw new Error(
+        "Previous price is required when the product is on sale",
+      );
+    }
+    if (!Number.isFinite(salePrice) || salePrice <= 0) {
+      throw new Error("Sale price must be a positive number");
+    }
+    if (salePrice >= previousPrice) {
+      throw new Error("Sale price must be less than the previous price");
+    }
+    return true;
+  }),
 ];
 
 const shippingAddressRules = [
@@ -306,6 +353,34 @@ const handleValidationErrors = (req, res, next) => {
   });
 };
 
+const subscriberRules = [emailRule];
+
+const createReviewRules = [
+  body("rating")
+    .exists()
+    .withMessage("Star rating is required")
+    .isInt({ min: 1, max: 5 })
+    .withMessage("Rating must be an integer between 1 and 5"),
+  body("comment")
+    .trim()
+    .notEmpty()
+    .withMessage("Review comment is required")
+    .isLength({ min: 3, max: 1000 })
+    .withMessage("Review comment must be between 3 and 1000 characters"),
+];
+
+const updateReviewRules = [
+  body("rating")
+    .optional()
+    .isInt({ min: 1, max: 5 })
+    .withMessage("Rating must be an integer between 1 and 5"),
+  body("comment")
+    .optional()
+    .trim()
+    .isLength({ min: 3, max: 1000 })
+    .withMessage("Review comment must be between 3 and 1000 characters"),
+];
+
 module.exports = {
   validate: handleValidationErrors,
   registerRules,
@@ -320,4 +395,7 @@ module.exports = {
   resetPasswordRules,
   categoryRules,
   quantityRule,
+  subscriberRules,
+  createReviewRules,
+  updateReviewRules,
 };

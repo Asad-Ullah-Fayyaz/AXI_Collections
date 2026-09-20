@@ -2,6 +2,7 @@ const express = require('express');
 const {
   getProducts,
   getFeaturedProducts,
+  getProductById,
   getProductBySlug,
   getRelatedProducts,
   createProduct,
@@ -17,6 +18,7 @@ const upload = require('../middleware/upload');
 const router = express.Router();
 
 router.get('/', paginationRules, validate, getProducts);
+router.get('/id/:id', getProductById);
 router.get('/featured', getFeaturedProducts);
 router.get('/:slug', getProductBySlug);
 router.get('/:id/related', getRelatedProducts);

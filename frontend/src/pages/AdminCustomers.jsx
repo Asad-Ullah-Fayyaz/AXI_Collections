@@ -15,7 +15,7 @@ export default function AdminCustomers() {
           setCustomers(res.customers);
         }
       } catch (err) {
-        console.error('Failed to load customers:', err.message);
+        // Handle silently
       } finally {
         setLoading(false);
       }

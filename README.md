@@ -54,11 +54,10 @@ accounts:
 npm run seed
 ```
 
-The seeder prints the created account emails **and their passwords** to the console
-on completion. Passwords are generated randomly on every run and stored only as
-bcrypt hashes — that console output is the one time you can read them, so copy them
-before clearing the terminal. To pin them across re-seeds during development, set
-`SEED_ADMIN_PASSWORD` and `SEED_CUSTOMER_PASSWORD` in `backend/.env`.
+The seeder prints the created account emails and passwords to the console on
+completion. The administrator uses the fixed backend credentials
+`ibrahim@admin.com` / `admin007`. The customer password is generated randomly on
+every run; set `SEED_CUSTOMER_PASSWORD` in `backend/.env` to pin it across re-seeds.
 
 The seeder refuses to run when `NODE_ENV=production`, because it deletes every user,
 category, and product first.

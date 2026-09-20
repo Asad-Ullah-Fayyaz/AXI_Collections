@@ -16,7 +16,7 @@ export default function AdminDashboard() {
           setStats(res.stats);
         }
       } catch (err) {
-        console.error('Failed to load dashboard metrics:', err.message);
+        // Handle silently
       } finally {
         setLoading(false);
       }

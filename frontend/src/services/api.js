@@ -1,7 +1,5 @@
 import axios from 'axios';
 
-// Development: VITE_API_URL is unset and Vite proxies /api to the backend
-// (see vite.config.js). Production: set VITE_API_URL to the deployed API origin.
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: {
@@ -9,19 +7,21 @@ const api = axios.create({
   }
 });
 
-// Interceptor to attach JWT token to every outgoing request
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('axi_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // Let browser set multipart boundary for FormData
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor for unified error formatting
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
@@ -32,5 +32,16 @@ api.interceptors.response.use(
     return Promise.reject(new Error(message));
   }
 );
+
+// Resolves relative /uploads/... paths to the backend origin so images
+// render correctly when frontend & backend are on different ports.
+export const toAbsoluteUrl = (url) => {
+  if (!url) return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  const origin =
+    (import.meta.env.VITE_API_URL || '').replace(/\/api\/?$/, '') ||
+    'http://localhost:5000';
+  return `${origin}${url.startsWith('/') ? '' : '/'}${url}`;
+};
 
 export default api;

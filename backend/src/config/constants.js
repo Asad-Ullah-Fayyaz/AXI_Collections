@@ -15,10 +15,6 @@ module.exports = {
     BCRYPT_SALT_ROUNDS: 10,
   },
 
-  SHIPPING: {
-    FREE_SHIPPING_THRESHOLD: 20000, // PKR — free shipping over this subtotal
-    STANDARD_SHIPPING_COST: 350, // PKR — flat rate below the threshold
-  },
 
   ORDER: {
     VALID_STATUSES: [
@@ -49,5 +45,10 @@ module.exports = {
 
   SEARCH: {
     MAX_LENGTH: 100,
+  },
+
+  SHIPPING: {
+    STANDARD_SHIPPING_COST: 300,
+    FREE_SHIPPING_THRESHOLD: 5000,
   },
 };

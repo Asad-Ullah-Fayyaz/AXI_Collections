@@ -32,3 +32,8 @@ Thumbs.db
 
 # Uploads (user content)
 backend/uploads/
+backend/superAdmin.md
+
+CLOUDINARY_CLOUD_NAME= tjk4akea
+CLOUDINARY_API_KEY= 985762231233591
+CLOUDINARY_API_SECRET=EkKso5mn8RuDiLGPKgeDCHcJdFY

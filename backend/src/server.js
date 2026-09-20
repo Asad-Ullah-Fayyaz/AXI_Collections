@@ -8,6 +8,8 @@ validateEnv();
 const app = require('./app');
 const { connectDB } = require('./config/db');
 
+const logger = require('./utils/logger');
+
 const PORT = process.env.PORT || 5000;
 
 // Start Server after connecting to Database
@@ -15,17 +17,16 @@ const startServer = async () => {
   await connectDB();
 
   const server = app.listen(PORT, () => {
-    console.log(`====================================================`);
-    console.log(` AXI Collection Backend API Running `);
-    console.log(` Port    : ${PORT}`);
-    console.log(` Mode    : ${process.env.NODE_ENV || 'development'}`);
-    console.log(` Health  : http://localhost:${PORT}/api/health`);
-    console.log(`====================================================`);
+    logger.info('AXI Collection Backend API Started', {
+      port: PORT,
+      mode: process.env.NODE_ENV || 'development',
+      health: `http://localhost:${PORT}/api/health`
+    });
   });
 
   // Handle Unhandled Rejections
   process.on('unhandledRejection', (err) => {
-    console.error(`[Unhandled Rejection Error] ${err.message}`);
+    logger.error('Unhandled Rejection Error', { error: err.message, stack: err.stack });
   });
 };
 

@@ -3,6 +3,7 @@ const Category = require('../models/Category');
 const SubCategory = require('../models/SubCategory');
 const slugify = require('slugify');
 const { PAGINATION, SEARCH } = require('../config/constants');
+const { normalizeSaleFields } = require('../utils/pricing');
 
 // Escape user input before using it in $regex (prevents regex injection / ReDoS)
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -27,6 +28,13 @@ const generateUniqueSlug = async (baseSlug, excludeId = null) => {
 // Controlled local placeholder for products without images (no external random URLs)
 const PLACEHOLDER_IMAGE = '/images/product-placeholder.svg';
 
+// Helper — returns the _id list of active categories. Used to exclude products
+// whose category has been disabled by the admin.
+const getActiveCategoryIds = async () => {
+  const activeCats = await Category.find({ isActive: true }).select('_id');
+  return activeCats.map((c) => c._id);
+};
+
 // @desc    Get all catalog products with search, filters, sorting & pagination
 // @route   GET /api/products
 // @access  Public
@@ -44,20 +52,51 @@ exports.getProducts = async (req, res, next) => {
       limit = PAGINATION.DEFAULT_LIMIT
     } = req.query;
 
-    const query = { isActive: true };
+    const activeCategoryIds = await getActiveCategoryIds();
 
-    // Search by product name or description (escaped, length-limited by validator)
+    const query = {
+      isActive: true,
+      category: { $in: activeCategoryIds }
+    };
+
+    // ============================================================
+    // SEARCH — matches name, description, AND category name
+    // Also handles simple pluralization ("watches" → "watch")
+    // ============================================================
     if (search) {
-      const escaped = escapeRegex(search.trim()).slice(0, SEARCH.MAX_LENGTH);
-      query.$or = [
-        { name: { $regex: escaped, $options: 'i' } },
-        { description: { $regex: escaped, $options: 'i' } }
-      ];
-    }
+      const trimmed = escapeRegex(search.trim()).slice(0, SEARCH.MAX_LENGTH);
 
-    // Category filter by slug — invalid category returns EMPTY results, not all products
+      // Build term variants so "watches" also matches "watch", "caps" → "cap", etc.
+      const variants = new Set([trimmed]);
+      if (trimmed.endsWith('es')) variants.add(trimmed.slice(0, -2));
+      if (trimmed.endsWith('s')) variants.add(trimmed.slice(0, -1));
+
+      const orConditions = [];
+      for (const term of variants) {
+        const rx = { $regex: term, $options: 'i' };
+        orConditions.push({ name: rx }, { description: rx });
+      }
+
+      // Also match products whose category name matches the search term
+      // (but only active categories)
+      const matchingCategories = await Category.find({
+        name: { $regex: trimmed, $options: 'i' },
+        isActive: true
+      }).select('_id');
+
+      if (matchingCategories.length > 0) {
+        orConditions.push({
+          category: { $in: matchingCategories.map((c) => c._id) }
+        });
+      }
+
+      query.$or = orConditions;
+    }
+    // ============================================================
+
+    // Category filter by slug — disabled categories return EMPTY results
     if (category) {
-      const catObj = await Category.findOne({ slug: category });
+      const catObj = await Category.findOne({ slug: category, isActive: true });
       if (!catObj) {
         return res.status(200).json({
           success: true,
@@ -73,7 +112,7 @@ exports.getProducts = async (req, res, next) => {
 
     // SubCategory filter by slug
     if (subCategory) {
-      const subCatObj = await SubCategory.findOne({ slug: subCategory });
+      const subCatObj = await SubCategory.findOne({ slug: subCategory, isActive: true });
       if (!subCatObj) {
         return res.status(200).json({
           success: true,
@@ -136,7 +175,13 @@ exports.getProducts = async (req, res, next) => {
 // @access  Public
 exports.getFeaturedProducts = async (req, res, next) => {
   try {
-    const products = await Product.find({ isActive: true, isFeatured: true })
+    const activeCategoryIds = await getActiveCategoryIds();
+
+    const products = await Product.find({
+      isActive: true,
+      isFeatured: true,
+      category: { $in: activeCategoryIds }
+    })
       .populate('category', 'name slug')
       .populate('subCategory', 'name slug')
       .limit(8)
@@ -157,7 +202,13 @@ exports.getFeaturedProducts = async (req, res, next) => {
 // @access  Public
 exports.getProductBySlug = async (req, res, next) => {
   try {
-    const product = await Product.findOne({ slug: req.params.slug, isActive: true })
+    const activeCategoryIds = await getActiveCategoryIds();
+
+    const product = await Product.findOne({
+      slug: req.params.slug,
+      isActive: true,
+      category: { $in: activeCategoryIds }
+    })
       .populate('category', 'name slug')
       .populate('subCategory', 'name slug');
 
@@ -184,23 +235,39 @@ exports.getRelatedProducts = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
+    const activeCategoryIds = await getActiveCategoryIds();
+
     // Recommend primarily from same sub-category, falling back to same category
     let related = [];
     if (currentProduct.subCategory) {
       related = await Product.find({
         subCategory: currentProduct.subCategory,
         _id: { $ne: currentProduct._id },
-        isActive: true
-      }).limit(4).populate('category', 'name slug');
+        isActive: true,
+        category: { $in: activeCategoryIds }
+      })
+        .limit(4)
+        .populate('category', 'name slug');
     }
 
     if (related.length < 4) {
       const excludeIds = [currentProduct._id, ...related.map((r) => r._id)];
-      const categoryFallback = await Product.find({
-        category: currentProduct.category,
-        _id: { $nin: excludeIds },
-        isActive: true
-      }).limit(4 - related.length).populate('category', 'name slug');
+
+      // Only fall back to category if the parent category is active
+      const catIsActive = activeCategoryIds.some(
+        (id) => id.toString() === currentProduct.category?.toString()
+      );
+
+      const categoryFallback = catIsActive
+        ? await Product.find({
+            category: currentProduct.category,
+            _id: { $nin: excludeIds },
+            isActive: true
+          })
+            .limit(4 - related.length)
+            .populate('category', 'name slug')
+        : [];
+
       related = [...related, ...categoryFallback];
     }
 
@@ -214,15 +281,34 @@ exports.getRelatedProducts = async (req, res, next) => {
 };
 
 // --- ADMIN PRODUCT CRUD ---
+// (unchanged — admin must still see products in disabled categories)
 
 exports.createProduct = async (req, res, next) => {
   try {
-    const { name, description, price, stock, category, subCategory, images, isFeatured } = req.body;
+    const {
+      name,
+      description,
+      price,
+      stock,
+      category,
+      subCategory,
+      images,
+      isFeatured,
+      isCustomizable,
+      isOnSale,
+      salePrice,
+      isNew
+    } = req.body;
+
+    const saleFields = normalizeSaleFields(req.body);
+    if (saleFields.error) {
+      return res.status(400).json({ success: false, message: saleFields.error });
+    }
 
     const baseSlug = slugify(name, { lower: true, strict: true });
     const slug = await generateUniqueSlug(baseSlug);
 
-    const product = await Product.create({
+    const productData = {
       name,
       slug,
       description,
@@ -231,8 +317,20 @@ exports.createProduct = async (req, res, next) => {
       category,
       subCategory: subCategory || null,
       images: Array.isArray(images) && images.length > 0 ? images : [PLACEHOLDER_IMAGE],
-      isFeatured: Boolean(isFeatured)
-    });
+      isFeatured: Boolean(isFeatured),
+      isCustomizable: Boolean(isCustomizable),
+      isOnSale: Boolean(isOnSale),
+      isNew: Boolean(isNew),
+      onSale: saleFields.onSale,
+      previousPrice: saleFields.previousPrice
+    };
+
+    const normalizedSalePrice = Number(salePrice);
+    if (salePrice !== undefined && salePrice !== null && salePrice !== '' && Number.isFinite(normalizedSalePrice) && normalizedSalePrice >= 0) {
+      productData.salePrice = normalizedSalePrice;
+    }
+
+    const product = await Product.create(productData);
 
     res.status(201).json({ success: true, product });
   } catch (error) {
@@ -242,9 +340,22 @@ exports.createProduct = async (req, res, next) => {
 
 exports.updateProduct = async (req, res, next) => {
   try {
-    const { name, description, price, stock, category, subCategory, images, isFeatured, isActive } = req.body;
-
+    
+const { name, description, price, stock, category, subCategory, images, isFeatured, isActive, isCustomizable, isOnSale, salePrice, isNew } = req.body;
     const updateData = {};
+    if (req.body.onSale !== undefined || req.body.previousPrice !== undefined) {
+      const existingProduct = await Product.findById(req.params.id).select('price');
+      const saleFields = normalizeSaleFields({
+        onSale: req.body.onSale,
+        previousPrice: req.body.previousPrice,
+        price: price !== undefined && price !== '' ? price : existingProduct?.price
+      });
+      if (saleFields.error) {
+        return res.status(400).json({ success: false, message: saleFields.error });
+      }
+      updateData.onSale = saleFields.onSale;
+      updateData.previousPrice = saleFields.previousPrice;
+    }
     if (name) {
       updateData.name = name;
       // Ensure the new slug is unique (excluding this product itself)
@@ -261,6 +372,15 @@ exports.updateProduct = async (req, res, next) => {
     if (images && Array.isArray(images)) updateData.images = images;
     if (isFeatured !== undefined) updateData.isFeatured = Boolean(isFeatured);
     if (isActive !== undefined) updateData.isActive = Boolean(isActive);
+     if (isCustomizable !== undefined) updateData.isCustomizable = Boolean(isCustomizable);
+    if (isOnSale !== undefined) updateData.isOnSale = Boolean(isOnSale);
+    if (isNew !== undefined) updateData.isNew = Boolean(isNew);
+    if (salePrice !== undefined && salePrice !== null && salePrice !== '') {
+      const normalizedSalePrice = Number(salePrice);
+      if (Number.isFinite(normalizedSalePrice) && normalizedSalePrice >= 0) {
+        updateData.salePrice = normalizedSalePrice;
+      }
+    }
 
     const product = await Product.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true });
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
@@ -288,8 +408,28 @@ exports.uploadImages = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please upload at least one image file' });
     }
 
-    const imagePaths = req.files.map(file => `/uploads/${file.filename}`);
+ // Cloudinary returns the full HTTPS URL in file.path
+    const imagePaths = req.files.map(file => file.path);
     res.status(200).json({ success: true, images: imagePaths });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get single product by MongoDB _id (admin use)
+// @route   GET /api/products/id/:id
+// @access  Public (or admin — your choice)
+exports.getProductById = async (req, res, next) => {
+  try {
+    const product = await Product.findById(req.params.id)
+      .populate('category', 'name slug')
+      .populate('subCategory', 'name slug');
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    res.status(200).json({ success: true, product });
   } catch (error) {
     next(error);
   }

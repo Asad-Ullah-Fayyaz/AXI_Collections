@@ -118,14 +118,15 @@ exports.login = async (req, res, next) => {
 // @route   POST /api/auth/admin-login
 // @access  Public
 //
-// This endpoint exists so the storefront login page never has to offer an "Admin
-// Login" option. It is a separate DOOR and an audit point — it is NOT the
-// authorization boundary. Authorization lives entirely in middleware/auth.js:
-// `protect` re-reads the user from MongoDB on every request and `requireAdmin`
-// checks that database row's role, so the token minted here carries exactly the
-// same authority as one minted by POST /api/auth/login and nothing more. Do not
-// grant this token extra claims, and do not relax requireAdmin on the assumption
-// that reaching this route proves anything about the caller.
+// Two ways to authenticate:
+//   1) Super Admin — credentials come from environment variables
+//      (SUPER_ADMIN_EMAIL, SUPER_ADMIN_PASSWORD_HASH). Not stored in the database,
+//      cannot be deleted or modified via the API, survives even if the DB is
+//      compromised.
+//   2) Regular Admin — an existing User document with role === 'admin'.
+//
+// Both paths return a JWT with the appropriate role. Middleware/auth.js re-reads
+// the user on every request, so the token's authority is always re-verified.
 exports.adminLogin = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -137,21 +138,59 @@ exports.adminLogin = async (req, res, next) => {
       });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    const normalizedEmail = String(email).toLowerCase().trim();
 
-    // SECURITY: run a bcrypt comparison on EVERY request, against the real account's
-    // hash whenever one exists, so the unknown-email, wrong-password and
-    // not-an-administrator paths are indistinguishable by response time. Do not
-    // switch this to user.matchPassword(password) — that throws on a null user, and
-    // the 500 it produces would itself be a flawless account-existence oracle.
+    // ============================================================
+    // 1) Super Admin — env-based credentials
+    // ============================================================
+    const superEmail = (config.superAdminEmail || '').toLowerCase().trim();
+    const superHash = config.superAdminPasswordHash || '';
+
+    if (superEmail && superHash && normalizedEmail === superEmail) {
+      const isSuperMatch = await bcrypt.compare(password, superHash);
+
+      if (isSuperMatch) {
+        const token = jwt.sign(
+          { id: 'superadmin', role: 'superadmin' },
+          config.jwtSecret,
+          { expiresIn: config.jwtExpire }
+        );
+
+        logger.info('Super Admin login succeeded');
+
+        return res.status(200).json({
+          success: true,
+          token,
+          user: {
+            id: 'superadmin',
+            _id: 'superadmin',
+            name: 'Super Admin',
+            email: config.superAdminEmail,
+            role: 'superadmin',
+            addresses: []
+          }
+        });
+      }
+
+      // Wrong password for Super Admin email — fall through to DB check so timing
+      // and error messages remain identical to a regular failed login.
+    }
+
+    // ============================================================
+    // 2) Regular Admin — DB lookup
+    // ============================================================
+    const user = await User.findOne({ email: normalizedEmail }).select('+password');
+
+    // SECURITY: run bcrypt compare on EVERY request, even when user doesn't exist,
+    // using a dummy hash. Prevents account-existence timing oracle.
     const storedHash = user && user.password ? user.password : DUMMY_PASSWORD_HASH;
     const isMatch = await bcrypt.compare(password, storedHash);
 
-    // SECURITY: one identical generic reply for all three failure modes. What
-    // actually went wrong goes to the server log and never to the client — the same
-    // split that requireAdmin and forgotPassword already use.
     if (!user || !isMatch) {
-      logger.warn('Admin login failed: invalid credentials', user ? { userId: user._id } : undefined);
+      logger.warn(
+        'Admin login failed: invalid credentials',
+        user ? { userId: user._id } : undefined
+      );
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -159,7 +198,9 @@ exports.adminLogin = async (req, res, next) => {
     }
 
     if (user.role !== 'admin') {
-      logger.warn('Admin login denied: account is not an administrator', { userId: user._id });
+      logger.warn('Admin login denied: account is not an administrator', {
+        userId: user._id
+      });
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -178,6 +219,21 @@ exports.adminLogin = async (req, res, next) => {
 // @access  Private
 exports.getMe = async (req, res, next) => {
   try {
+    // Super Admin is env-based and not in the DB — synthesize a profile
+    if (req.user && req.user.role === 'superadmin') {
+      return res.status(200).json({
+        success: true,
+        user: {
+          id: 'superadmin',
+          _id: 'superadmin',
+          name: 'Super Admin',
+          email: config.superAdminEmail,
+          role: 'superadmin',
+          addresses: []
+        }
+      });
+    }
+
     const user = await User.findById(req.user.id);
     res.status(200).json({
       success: true,

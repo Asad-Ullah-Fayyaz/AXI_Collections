@@ -9,14 +9,29 @@ const { registerRules, loginRules, addressRules, forgotPasswordRules, resetPassw
 
 const router = express.Router();
 
-// Brute-force protection on public auth endpoints
-const authLimiter = rateLimit({
+// Dedicated rate limiters per specification
+const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 500,
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: true,
-  message: { success: false, message: 'Too many authentication attempts. Please try again after 15 minutes.' }
+  message: { success: false, message: 'Too many login attempts. Please try again after a few minutes.' }
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many registration attempts. Please try again after 15 minutes.' }
+});
+
+const adminLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many admin login attempts. Please try again after 15 minutes.' }
 });
 
 const resetLimiter = rateLimit({
@@ -27,18 +42,9 @@ const resetLimiter = rateLimit({
   message: { success: false, message: 'Too many password reset requests. Please try again later.' }
 });
 
-router.post('/register', authLimiter, registerRules, validate, register);
-router.post('/login', authLimiter, loginRules, validate, login);
-
-// Reuses authLimiter deliberately. A stricter dedicated bucket was considered and
-// rejected: `app.set('trust proxy', ...)` is not configured anywhere, so behind any
-// reverse proxy every client collapses into a single per-IP bucket, and a handful of
-// junk requests per window would lock the only administrator out of the console with
-// no way back except a server restart (express-rate-limit's default store is
-// in-memory). A separate low-volume bucket would also leak sign-in activity through
-// the RateLimit-Remaining header. Tightening this needs the deployment topology
-// settled first, and is tracked as its own task.
-router.post('/admin-login', authLimiter, loginRules, validate, adminLogin);
+router.post('/register', registerLimiter, registerRules, validate, register);
+router.post('/login', loginLimiter, loginRules, validate, login);
+router.post('/admin-login', adminLoginLimiter, loginRules, validate, adminLogin);
 
 router.get('/me', protect, getMe);
 router.put('/profile', protect, addressRules, validate, updateProfile);

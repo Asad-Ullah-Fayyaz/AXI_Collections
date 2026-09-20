@@ -1,12 +1,19 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { CartProvider } from './context/CartContext';
+import ScrollToTop from './components/common/ScrollToTop';
 
 import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 import CartDrawer from './components/common/CartDrawer';
 
+import ReturnsPolicy from './pages/ReturnsPolicy';
+import ShippingPolicy from './pages/ShippingPolicy';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import Terms from './pages/Terms';
+
+import WhatsAppButton from './components/common/WhatsAppButton';
+import NotFound from './pages/NotFound';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import ProductDetail from './pages/ProductDetail';
@@ -25,6 +32,11 @@ import AdminProducts from './pages/AdminProducts';
 import AdminProductEdit from './pages/AdminProductEdit';
 import AdminCategories from './pages/AdminCategories';
 import AdminCustomers from './pages/AdminCustomers';
+import AdminHomeEditor from './pages/AdminHomeEditor';
+import AdminSettings from './pages/AdminSettings';
+import AdminManageAdmins from './pages/AdminManageAdmins';
+import AdminReviews from './pages/AdminReviews';
+
 
 // Protected Route for Authenticated Customers
 const RequireAuth = ({ children }) => {
@@ -35,13 +47,6 @@ const RequireAuth = ({ children }) => {
 };
 
 // Shown to a signed-in customer who reaches an /admin URL.
-//
-// Deliberately honest rather than a fake 404. Faking one would not hide anything:
-// every admin path is already in the production JS bundle, an anonymous visitor is
-// sent to a working /admin/login either way, and — because the catch-all below
-// REDIRECTS to / — a 404 rendered in place at /admin/orders would look nothing like
-// a genuinely unknown URL, so the disguise would advertise the very route it was
-// meant to conceal.
 const NoAccess = () => (
   <div className="container" style={{ padding: '6rem 1.5rem', maxWidth: '520px', textAlign: 'center' }}>
     <span className="text-uppercase-tracking" style={{ color: 'var(--text-muted)' }}>RESTRICTED</span>
@@ -58,9 +63,6 @@ const NoAccess = () => (
 const RequireAdmin = ({ children }) => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '6rem' }}><div className="spinner"></div></div>;
-  // Not signed in at all → the admin door, not the customer one. Sending an
-  // administrator to /login used to strand them: that page no longer routes admins
-  // anywhere near the console.
   if (!isAuthenticated) return <Navigate to="/admin/login" replace />;
   if (!isAdmin) return <NoAccess />;
   return children;
@@ -69,80 +71,107 @@ const RequireAdmin = ({ children }) => {
 export default function App() {
   return (
     <AuthProvider>
-      <CartProvider>
-        <Router>
-          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <Navbar />
-            <CartDrawer />
+      <Router>
+        <ScrollToTop />
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <Navbar />
+          <CartDrawer />
 
-            <div style={{ flex: 1 }}>
-              <Routes>
-                {/* Public Storefront Routes */}
-                <Route path="/" element={<Home />} />
-                <Route path="/products" element={<Products />} />
-                <Route path="/products/:slug" element={<ProductDetail />} />
-                <Route path="/cart" element={<CartPage />} />
-                <Route path="/checkout" element={<CheckoutPage />} />
-                <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
-                <Route path="/track-order" element={<TrackOrder />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
+          <div style={{ flex: 1 }}>
+            <Routes>
 
-                {/* Customer Account Routes */}
-                <Route path="/profile" element={
-                  <RequireAuth>
-                    <Profile />
-                  </RequireAuth>
-                } />
 
-                {/* Admin console. Unlinked from the storefront by design; the
-                    backend, not the URL, is what actually enforces access. */}
-                <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin" element={
-                  <RequireAdmin>
-                    <AdminDashboard />
-                  </RequireAdmin>
-                } />
-                <Route path="/admin/orders" element={
-                  <RequireAdmin>
-                    <AdminOrders />
-                  </RequireAdmin>
-                } />
-                <Route path="/admin/products" element={
-                  <RequireAdmin>
-                    <AdminProducts />
-                  </RequireAdmin>
-                } />
-                <Route path="/admin/products/new" element={
-                  <RequireAdmin>
-                    <AdminProductEdit />
-                  </RequireAdmin>
-                } />
-                <Route path="/admin/products/edit/:id" element={
-                  <RequireAdmin>
-                    <AdminProductEdit />
-                  </RequireAdmin>
-                } />
-                <Route path="/admin/categories" element={
-                  <RequireAdmin>
-                    <AdminCategories />
-                  </RequireAdmin>
-                } />
-                <Route path="/admin/customers" element={
-                  <RequireAdmin>
-                    <AdminCustomers />
-                  </RequireAdmin>
-                } />
+               <Route path="/returns-policy" element={<ReturnsPolicy />} />
+                <Route path="/shipping-policy" element={<ShippingPolicy />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<Terms />} />
 
-                {/* Catch-all redirect */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </div>
 
-            <Footer />
+              {/* Public Storefront Routes */}
+              <Route path="/" element={<Home />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/products/:slug" element={<ProductDetail />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
+              <Route path="/track-order" element={<TrackOrder />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+
+              {/* Customer Account Routes */}
+              <Route path="/profile" element={
+                <RequireAuth>
+                  <Profile />
+                </RequireAuth>
+              } />
+
+              {/* Admin console */}
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin" element={
+                <RequireAdmin>
+                  <AdminDashboard />
+                </RequireAdmin>
+              } />
+              <Route path="/admin/orders" element={
+                <RequireAdmin>
+                  <AdminOrders />
+                </RequireAdmin>
+              } />
+               <Route path="/admin/settings" element={
+                      <RequireAdmin>
+                        <AdminSettings />
+                      </RequireAdmin>
+                    } />
+              <Route path="/admin/products" element={
+                <RequireAdmin>
+                  <AdminProducts />
+                </RequireAdmin>
+              } />
+              <Route path="/admin/products/new" element={
+                <RequireAdmin>
+                  <AdminProductEdit />
+                </RequireAdmin>
+              } />
+              <Route path="/admin/products/edit/:id" element={
+                <RequireAdmin>
+                  <AdminProductEdit />
+                </RequireAdmin>
+              } />
+              <Route path="/admin/categories" element={
+                <RequireAdmin>
+                  <AdminCategories />
+                </RequireAdmin>
+              } />
+              <Route path="/admin/customers" element={
+                <RequireAdmin>
+                  <AdminCustomers />
+                </RequireAdmin>
+              } />
+              <Route path="/admin/reviews" element={
+                <RequireAdmin>
+                  <AdminReviews />
+                </RequireAdmin>
+              } />
+              <Route path="/admin/home" element={
+                <RequireAdmin>
+                <AdminHomeEditor/>
+                </RequireAdmin>
+                }/>
+                <Route path="/admin/admins" element={
+                  <RequireAdmin>
+                  <AdminManageAdmins />
+                  </RequireAdmin>
+                  }/>
+                
+              {/* 404 Catch-all route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
           </div>
-        </Router>
-      </CartProvider>
+
+          <Footer />
+           <WhatsAppButton />  
+        </div>
+      </Router>
     </AuthProvider>
   );
 }

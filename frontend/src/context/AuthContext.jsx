@@ -1,19 +1,33 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import api from '../services/api';
+import { setUser as setReduxUser, logout as reduxLogout, selectCurrentUser, selectAuthLoading } from '../store/slices/authSlice';
+import { initializeCart, resetCartState } from '../store/slices/cartSlice';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const dispatch = useDispatch();
+  const reduxUser = useSelector(selectCurrentUser);
+  const reduxLoading = useSelector(selectAuthLoading);
+
+  const [user, setUser] = useState(reduxUser);
   const [token, setToken] = useState(localStorage.getItem('axi_token') || null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch current user details on mount if token exists
+  // Sync internal user state with Redux user state
+  useEffect(() => {
+    setUser(reduxUser);
+  }, [reduxUser]);
+
+  // Fetch current user details on mount or when token changes
   useEffect(() => {
     let ignore = false;
 
     const loadUser = async () => {
       if (!token) {
+        dispatch(setReduxUser(null));
+        dispatch(initializeCart());
         setLoading(false);
         return;
       }
@@ -21,16 +35,16 @@ export const AuthProvider = ({ children }) => {
         const res = await api.get('/auth/me');
         if (!ignore && res.success) {
           setUser(res.user);
+          dispatch(setReduxUser(res.user));
+          await dispatch(initializeCart());
         }
       } catch (err) {
-        // Guarded by `ignore`: without it, a rejection belonging to a previous token
-        // can land after a newer sign-in has already stored its token and wipe it —
-        // which reads to the user as "the admin login silently did nothing".
         if (!ignore) {
-          console.error('Failed to load user session:', err.message);
           localStorage.removeItem('axi_token');
           setToken(null);
           setUser(null);
+          dispatch(setReduxUser(null));
+          dispatch(initializeCart());
         }
       } finally {
         if (!ignore) setLoading(false);
@@ -42,26 +56,23 @@ export const AuthProvider = ({ children }) => {
     return () => {
       ignore = true;
     };
-  }, [token]);
+  }, [token, dispatch]);
 
-  // Keep every open tab on a single identity. services/api.js reads 'axi_token' out
-  // of localStorage on each request, so signing in from another tab immediately
-  // changes which account THIS tab's requests act as. Without this listener the tab
-  // would keep rendering the previous user while writing orders and cart items under
-  // the new one. The 'storage' event only fires in other tabs, never the one that
-  // made the change, so this cannot fight the setters above.
+  // Handle multi-tab storage sync
   useEffect(() => {
     const handleStorage = (event) => {
       if (event.key !== 'axi_token') return;
-      // Clear the user eagerly on sign-out: the [token] effect early-returns when
-      // there is no token and would otherwise leave the old profile on screen.
-      if (!event.newValue) setUser(null);
+      if (!event.newValue) {
+        setUser(null);
+        dispatch(setReduxUser(null));
+        dispatch(resetCartState());
+      }
       setToken(event.newValue);
     };
 
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
-  }, []);
+  }, [dispatch]);
 
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
@@ -69,21 +80,20 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('axi_token', res.token);
       setToken(res.token);
       setUser(res.user);
+      dispatch(setReduxUser(res.user));
+      await dispatch(initializeCart());
     }
     return res;
   };
 
-  // Separate endpoint, same resulting session. The backend rejects non-admin
-  // accounts here; it does NOT grant this token any extra authority, so nothing
-  // downstream should treat a session created this way as more privileged than one
-  // created by login() — middleware/auth.js re-checks the role from the database on
-  // every request either way.
   const adminLogin = async (email, password) => {
     const res = await api.post('/auth/admin-login', { email, password });
     if (res.success) {
       localStorage.setItem('axi_token', res.token);
       setToken(res.token);
       setUser(res.user);
+      dispatch(setReduxUser(res.user));
+      await dispatch(initializeCart());
     }
     return res;
   };
@@ -94,6 +104,8 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('axi_token', res.token);
       setToken(res.token);
       setUser(res.user);
+      dispatch(setReduxUser(res.user));
+      await dispatch(initializeCart());
     }
     return res;
   };
@@ -102,12 +114,15 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('axi_token');
     setToken(null);
     setUser(null);
+    dispatch(reduxLogout());
+    dispatch(resetCartState());
   };
 
   const updateProfile = async (profileData) => {
     const res = await api.put('/auth/profile', profileData);
     if (res.success) {
       setUser(res.user);
+      dispatch(setReduxUser(res.user));
     }
     return res;
   };
@@ -115,11 +130,12 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider
       value={{
-        user,
+        user: user || reduxUser,
         token,
-        loading,
-        isAuthenticated: !!user,
-        isAdmin: user?.role === 'admin',
+        loading: loading && reduxLoading,
+        isAuthenticated: !!(user || reduxUser),
+        isAdmin: (user || reduxUser)?.role === 'admin' || (user || reduxUser)?.role === 'superadmin',
+        isSuperAdmin: (user || reduxUser)?.role === 'superadmin',
         login,
         adminLogin,
         register,
