@@ -13,9 +13,7 @@ node_modules/
 frontend/node_modules/
 backend/node_modules/
 
-# Build artifacts
-frontend/dist/
-frontend/dist-ssr/
+
 
 # Vite temp files
 frontend/vite.config.js.timestamp-*.mjs
