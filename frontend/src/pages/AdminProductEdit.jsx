@@ -16,7 +16,7 @@ const [formData, setFormData] = useState({
   price: '',
   isOnSale: false,
   salePrice: '',
-  isNew: false,
+  newIs: false,
   stock: '',
   category: '',
   subCategory: '',
@@ -56,7 +56,7 @@ const [formData, setFormData] = useState({
   price: p.price ?? '',
   isOnSale: !!p.isOnSale,
   salePrice: p.salePrice ?? '',
-  isNew: !!p.isNew,
+  newIs: !!p.newIs,
   stock: p.stock ?? '',
   category: p.category?._id || p.category || '',
   subCategory: p.subCategory?._id || p.subCategory || '',
@@ -187,7 +187,7 @@ const [formData, setFormData] = useState({
   isActive: formData.isActive,
   isCustomizable: formData.isCustomizable,
   isOnSale: formData.isOnSale,
-  isNew: formData.isNew,
+  newIs: formData.newIs,
   ...(formData.isOnSale ? { salePrice: salePriceNum } : {})
 };
 
@@ -573,8 +573,8 @@ const [formData, setFormData] = useState({
   >
     <input
       type="checkbox"
-      name="isNew"
-      checked={formData.isNew}
+      name="newIs"
+      checked={formData.newIs}
       onChange={handleChange}
     />
     Mark as New

@@ -297,7 +297,7 @@ exports.createProduct = async (req, res, next) => {
       isCustomizable,
       isOnSale,
       salePrice,
-      isNew
+      newIs
     } = req.body;
 
     const saleFields = normalizeSaleFields(req.body);
@@ -320,7 +320,7 @@ exports.createProduct = async (req, res, next) => {
       isFeatured: Boolean(isFeatured),
       isCustomizable: Boolean(isCustomizable),
       isOnSale: Boolean(isOnSale),
-      isNew: Boolean(isNew),
+      newIs: Boolean(newIs),
       onSale: saleFields.onSale,
       previousPrice: saleFields.previousPrice
     };
@@ -341,7 +341,7 @@ exports.createProduct = async (req, res, next) => {
 exports.updateProduct = async (req, res, next) => {
   try {
     
-const { name, description, price, stock, category, subCategory, images, isFeatured, isActive, isCustomizable, isOnSale, salePrice, isNew } = req.body;
+const { name, description, price, stock, category, subCategory, images, isFeatured, isActive, isCustomizable, isOnSale, salePrice, newIs } = req.body;
     const updateData = {};
     if (req.body.onSale !== undefined || req.body.previousPrice !== undefined) {
       const existingProduct = await Product.findById(req.params.id).select('price');
@@ -374,7 +374,7 @@ const { name, description, price, stock, category, subCategory, images, isFeatur
     if (isActive !== undefined) updateData.isActive = Boolean(isActive);
      if (isCustomizable !== undefined) updateData.isCustomizable = Boolean(isCustomizable);
     if (isOnSale !== undefined) updateData.isOnSale = Boolean(isOnSale);
-    if (isNew !== undefined) updateData.isNew = Boolean(isNew);
+    if (newIs !== undefined) updateData.newIs = Boolean(newIs);
     if (salePrice !== undefined && salePrice !== null && salePrice !== '') {
       const normalizedSalePrice = Number(salePrice);
       if (Number.isFinite(normalizedSalePrice) && normalizedSalePrice >= 0) {

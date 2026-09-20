@@ -55,7 +55,7 @@ export default function ProductCard({ product }) {
             }}
           >
             {product.isFeatured && <span className="badge badge-gold">Featured</span>}
-            {product.isNew === true && <span className="badge badge-new">New</span>}
+            {product.newIs === true && <span className="badge badge-new">New</span>}
             {onSale && <span className="badge badge-dark">Sale</span>}
             {isOutOfStock && (
               <span

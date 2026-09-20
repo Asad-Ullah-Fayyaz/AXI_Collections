@@ -136,7 +136,7 @@ const formatCartResponse = async (cart) => {
           price: product.price,
           salePrice: product.salePrice ?? null,
           isOnSale: !!product.isOnSale,
-          isNew: !!product.isNew,
+          newIs: !!product.newIs,
           onSale: product.onSale === true,
           previousPrice: product.previousPrice || null,
           stock: product.stock,

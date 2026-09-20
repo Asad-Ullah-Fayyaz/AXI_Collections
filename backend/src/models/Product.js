@@ -94,7 +94,7 @@ const productSchema = new mongoose.Schema({
         message: 'Sale price must be a finite number less than the regular price when the product is on sale'
       }
     },
-    isNew: {
+    newIs: {
       type: Boolean,
       default: false,
       index: true
