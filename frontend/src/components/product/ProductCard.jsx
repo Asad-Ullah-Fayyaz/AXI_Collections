@@ -56,7 +56,7 @@ export default function ProductCard({ product }) {
             }}
           >
             {product.isFeatured && <span className="badge badge-gold">Featured</span>}
-            {product.newIs === true && <span className="badge badge-new">New</span>}
+            {product.isNew === true && <span className="badge badge-new">New</span>}
             {onSale && <span className="badge badge-dark">Sale</span>}
             {isOutOfStock && (
               <span
@@ -114,44 +114,53 @@ export default function ProductCard({ product }) {
             alignItems: 'flex-end',
             justifyContent: 'space-between',
             gap: '0.5rem',
-            marginTop: '0.5rem'
+            marginTop: '0.5rem',
+            flexWrap: 'wrap'
           }}
         >
-         <span
-  style={{
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    gap: '0.15rem',
-    minWidth: 0
-  }}
->
-  {onSale && (
-    <span
-      style={{
-        fontSize: '0.75rem',
-        fontWeight: 500,
-        color: 'var(--text-muted)',
-        textDecoration: 'line-through',
-        whiteSpace: 'nowrap'
-      }}
-    >
-      PKR {product.price?.toLocaleString() ?? '0'}
-    </span>
-  )}
-  <span
-    style={{
-      fontSize: '0.95rem',
-      fontWeight: 700,
-      color: 'var(--text-primary)',
-      whiteSpace: 'nowrap'
-    }}
-  >
-    {onSale
-      ? `PKR ${product.salePrice?.toLocaleString() ?? '0'}`
-      : `PKR ${product.price?.toLocaleString() ?? '0'}`}
-  </span>
-</span>
+          <span
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '0.15rem',
+              minWidth: 0,
+              flex: '1 1 auto',
+              overflow: 'hidden'
+            }}
+          >
+            {onSale && (
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  color: 'var(--text-muted)',
+                  textDecoration: 'line-through',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '100%'
+                }}
+              >
+                PKR {product.price?.toLocaleString() ?? '0'}
+              </span>
+            )}
+            <span
+              style={{
+                fontSize: '0.95rem',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '100%'
+              }}
+            >
+              {onSale
+                ? `PKR ${product.salePrice?.toLocaleString() ?? '0'}`
+                : `PKR ${product.price?.toLocaleString() ?? '0'}`}
+            </span>
+          </span>
 
           {isSuperAdmin ? (
             <span
