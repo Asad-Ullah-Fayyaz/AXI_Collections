@@ -51,6 +51,7 @@ export default function ProductCard({ product }) {
               display: 'flex',
               flexDirection: 'column',
               gap: '4px',
+              alignItems: 'flex-start',
               zIndex: 2
             }}
           >
@@ -110,7 +111,7 @@ export default function ProductCard({ product }) {
         <div
           style={{
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-end',
             justifyContent: 'space-between',
             gap: '0.5rem',
             marginTop: '0.5rem'
@@ -172,7 +173,8 @@ export default function ProductCard({ product }) {
               style={{
                 padding: '0.45rem 0.85rem',
                 cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                opacity: isOutOfStock ? 0.5 : 1
+                opacity: isOutOfStock ? 0.5 : 1,
+                flexShrink: 0
               }}
               aria-label={`Add ${product.name} to shopping bag`}
               title={isOutOfStock ? 'Sold out' : 'Add to Shopping Bag'}

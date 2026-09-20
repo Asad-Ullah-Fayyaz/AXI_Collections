@@ -198,6 +198,7 @@ img {
   text-transform: uppercase;
   border-radius: var(--radius-sm);
   white-space: nowrap;
+  line-height: 1;
 }
 
 .badge-dark {
