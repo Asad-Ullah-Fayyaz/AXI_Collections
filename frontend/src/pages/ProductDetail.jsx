@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { ShoppingBag, Truck, ShieldCheck, ChevronRight, Check, MapPin } from 'lucide-react';
+import { ShoppingBag, Truck, ShieldCheck, ChevronRight, Check, MapPin, ChevronDown } from 'lucide-react';
 import { addToCart } from '../store/slices/cartSlice';
 import {
   fetchProductBySlug,
@@ -29,12 +29,13 @@ export default function ProductDetail() {
   const [addedSuccess, setAddedSuccess] = useState(false);
   const [cartError, setCartError] = useState('');
   const [prescriptionText, setPrescriptionText] = useState('');
-  const [prescriptionImage, setPrescriptionImage] = useState('');  // Cloudinary URL after upload
+  const [prescriptionImage, setPrescriptionImage] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [lensOptions, setLensOptions] = useState([]);
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(5000);
   const [selectedLensIdx, setSelectedLensIdx] = useState(null);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
 
   const formatDate = (date) =>
     date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -62,7 +63,6 @@ export default function ProductDetail() {
 
   const deliveryDates = getDeliveryDates();
 
-  // Sync activeImage and loading whenever product changes
   useEffect(() => {
     if (product) {
       setActiveImage(product.images?.[0] || '');
@@ -70,7 +70,6 @@ export default function ProductDetail() {
     }
   }, [product]);
 
-  // Load product detail & related products from Redux (or fetch if not cached)
   useEffect(() => {
     const loadDetail = async () => {
       setQuantity(1);
@@ -78,6 +77,7 @@ export default function ProductDetail() {
       setPrescriptionImage('');
       setUploadError('');
       setSelectedLensIdx(null);
+      setCustomizeOpen(false);
 
       if (!product) {
         setLoading(true);
@@ -88,14 +88,12 @@ export default function ProductDetail() {
     loadDetail();
   }, [dispatch, slug]);
 
-  // Fetch related products once product ID is available
   useEffect(() => {
     if (product?._id && (!relatedProducts || relatedProducts.length === 0)) {
       dispatch(fetchRelatedProducts(product._id));
     }
   }, [dispatch, product?._id]);
 
-  // Load lens options (used on customizable products)
   useEffect(() => {
     const fetchLensOptions = async () => {
       try {
@@ -115,7 +113,6 @@ export default function ProductDetail() {
     };
     fetchLensOptions();
 
-    // Reset lens selection when navigating to a new product
     setSelectedLensIdx(null);
   }, [slug]);
 
@@ -123,7 +120,6 @@ export default function ProductDetail() {
     if (!product) return;
     setCartError('');
 
-    // If the product is customizable, build a customization object to send
     let customization;
     if (product.isCustomizable) {
       const desc = prescriptionText.trim();
@@ -131,10 +127,6 @@ export default function ProductDetail() {
       const selectedLens =
         selectedLensIdx !== null ? lensOptions[selectedLensIdx] : null;
 
-      // If customer provided a prescription, they MUST pick a lens
-           // Two-sided validation:
-      // 1) If a prescription is provided, a lens is required.
-      // 2) If a lens is selected, a prescription is required.
       if ((desc || img) && !selectedLens) {
         setCartError('Please select a lens type for your prescription');
         return;
@@ -143,8 +135,6 @@ export default function ProductDetail() {
         setCartError('Please provide your prescription to continue with a lens selection');
         return;
       }
-        
-      
 
       if (desc || img || selectedLens) {
         customization = {
@@ -165,7 +155,6 @@ export default function ProductDetail() {
       await dispatch(addToCart({ product, quantity, customization })).unwrap();
       setAddedSuccess(true);
       setTimeout(() => setAddedSuccess(false), 3000);
-      // Reset customization after successful add
       setPrescriptionText('');
       setPrescriptionImage('');
       setSelectedLensIdx(null);
@@ -198,7 +187,6 @@ export default function ProductDetail() {
       setUploadError(err.message || 'Upload failed — please try again');
     } finally {
       setUploading(false);
-      // Reset the input so the same file can be re-picked if needed
       e.target.value = '';
     }
   };
@@ -426,215 +414,78 @@ export default function ProductDetail() {
                 borderRadius: 'var(--radius-sm)'
               }}
             >
-              <h3
-                style={{
-                  fontFamily: 'var(--font-serif)',
-                  fontSize: '1.15rem',
-                  fontWeight: 400,
-                  marginBottom: '0.4rem',
-                  color: 'var(--text-primary)'
-                }}
-              >
-                Customize Your Lenses
-              </h3>
-              <p
-                style={{
-                  fontSize: '0.8rem',
-                  color: 'var(--text-muted)',
-                  marginBottom: '1.25rem',
-                  lineHeight: '1.5'
-                }}
-              >
-                Optional — leave blank if you want the frame without lenses.
-              </p>
-
-              {/* Prescription text */}
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  marginBottom: '0.5rem',
-                  color: 'var(--text-secondary)'
-                }}
-              >
-                Prescription Details / Instructions
-              </label>
-              <textarea
-                value={prescriptionText}
-                onChange={(e) => setPrescriptionText(e.target.value)}
-                rows={4}
-                maxLength={2000}
-                placeholder="e.g. Left: -1.50, Right: -2.00, Cyl: -0.50 — or any instructions from your doctor."
-                className="form-textarea"
-                style={{
-                  width: '100%',
-                  fontSize: '0.85rem',
-                  padding: '0.75rem 0.9rem',
-                  marginBottom: '0.4rem'
-                }}
-                disabled={uploading}
-              />
-              <p
-                style={{
-                  fontSize: '0.7rem',
-                  color: 'var(--text-muted)',
-                  marginBottom: '1.25rem',
-                  textAlign: 'right'
-                }}
-              >
-                {prescriptionText.length} / 2000
-              </p>
-
-              {/* Prescription image upload */}
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  marginBottom: '0.5rem',
-                  color: 'var(--text-secondary)'
-                }}
-              >
-                Or Upload a Picture of Your Prescription
-              </label>
-
-              {prescriptionImage ? (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem',
-                    padding: '0.6rem 0.9rem',
-                    border: '1px solid var(--border-light)',
-                    backgroundColor: 'var(--bg-primary)',
-                    borderRadius: 'var(--radius-sm)',
-                    marginBottom: '1rem'
-                  }}
-                >
-                  <img
-                    src={prescriptionImage}
-                    alt="Prescription preview"
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      objectFit: 'cover',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border-light)'
-                    }}
-                  />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        color: 'var(--text-primary)'
-                      }}
-                    >
-                      Prescription attached
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '0.7rem',
-                        color: 'var(--text-muted)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      {prescriptionImage.split('/').pop()}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleRemovePrescriptionImage}
-                    style={{
-                      fontSize: '0.7rem',
-                      color: '#c53030',
-                      padding: '0.4rem 0.6rem',
-                      border: '1px solid #feb2b2',
-                      borderRadius: 'var(--radius-sm)',
-                      cursor: 'pointer',
-                      background: 'transparent'
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <label
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    padding: '0.7rem 1.2rem',
-                    border: '1px dashed var(--border-light)',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.8rem',
-                    color: 'var(--text-secondary)',
-                    cursor: uploading ? 'wait' : 'pointer',
-                    backgroundColor: 'var(--bg-primary)',
-                    marginBottom: '1rem'
-                  }}
-                >
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp"
-                    onChange={handlePrescriptionImageUpload}
-                    disabled={uploading}
-                    style={{ display: 'none' }}
-                  />
-                  {uploading ? 'Uploading…' : '+ Choose Image'}
-                </label>
-              )}
-
-              {uploadError && (
-                <p
-                  style={{
-                    fontSize: '0.75rem',
-                    color: '#c53030',
-                    marginTop: '-0.5rem',
-                    marginBottom: '1rem'
-                  }}
-                >
-                  {uploadError}
-                </p>
-              )}
-
-              {/* Cylinder note */}
+              {/* Header row with toggle on the top-right */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'flex-start',
-                  gap: '0.6rem',
-                  paddingTop: '1rem',
-                  borderTop: '1px solid var(--border-light)',
-                  fontSize: '0.75rem',
-                  color: 'var(--text-muted)',
-                  lineHeight: '1.6'
+                  justifyContent: 'space-between',
+                  gap: '1rem',
+                  marginBottom: customizeOpen ? '1.25rem' : '0'
                 }}
               >
-                <span style={{ flexShrink: 0, marginTop: '1px' }}>ⓘ</span>
-                <span>
-                  If your prescription includes a <strong>cylinder / cylindrical</strong>{' '}
-                  number, we will contact you on WhatsApp to confirm before dispatching
-                  your order.
-                </span>
-              </div>
+                <div style={{ minWidth: 0 }}>
+                  <h3
+                    style={{
+                      fontFamily: 'var(--font-serif)',
+                      fontSize: '1.15rem',
+                      fontWeight: 400,
+                      marginBottom: '0.4rem',
+                      color: 'var(--text-primary)'
+                    }}
+                  >
+                    Customize Your Lenses
+                  </h3>
+                  <p
+                    style={{
+                      fontSize: '0.8rem',
+                      color: 'var(--text-muted)',
+                      lineHeight: '1.5'
+                    }}
+                  >
+                    Optional — leave blank if you want the frame without lenses.
+                  </p>
+                </div>
 
-              {/* Lens Options — only when the admin configured them */}
-              {lensOptions.length > 0 && (
-                <div
+                <button
+                  type="button"
+                  onClick={() => setCustomizeOpen((v) => !v)}
+                  aria-expanded={customizeOpen}
+                  aria-controls="pdp-customize-panel"
+                  aria-label={customizeOpen ? 'Collapse lens customization' : 'Expand lens customization'}
                   style={{
-                    marginTop: '1.25rem',
-                    paddingTop: '1rem',
-                    borderTop: '1px solid var(--border-light)'
+                    flexShrink: 0,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.4rem 0.75rem',
+                    border: '1px solid var(--border-light)',
+                    borderRadius: 'var(--radius-sm)',
+                    backgroundColor: 'var(--bg-primary)',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
+                    transition: 'background-color var(--transition-fast), border-color var(--transition-fast)'
                   }}
                 >
+                  {customizeOpen ? 'Hide' : 'Customize'}
+                  <ChevronDown
+                    size={14}
+                    style={{
+                      transition: 'transform 0.2s ease',
+                      transform: customizeOpen ? 'rotate(180deg)' : 'rotate(0deg)'
+                    }}
+                  />
+                </button>
+              </div>
+
+              {/* Collapsible content — only rendered when open */}
+              {customizeOpen && (
+                <div id="pdp-customize-panel">
+                  {/* Prescription text */}
                   <label
                     style={{
                       display: 'block',
@@ -642,93 +493,281 @@ export default function ProductDetail() {
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       letterSpacing: '0.08em',
-                      marginBottom: '0.75rem',
+                      marginBottom: '0.5rem',
                       color: 'var(--text-secondary)'
                     }}
                   >
-                    Select Lens Type
+                    Prescription Details / Instructions
+                  </label>
+                  <textarea
+                    value={prescriptionText}
+                    onChange={(e) => setPrescriptionText(e.target.value)}
+                    rows={4}
+                    maxLength={2000}
+                    placeholder="e.g. Left: -1.50, Right: -2.00, Cyl: -0.50 — or any instructions from your doctor."
+                    className="form-textarea"
+                    style={{
+                      width: '100%',
+                      fontSize: '0.85rem',
+                      padding: '0.75rem 0.9rem',
+                      marginBottom: '0.4rem'
+                    }}
+                    disabled={uploading}
+                  />
+                  <p
+                    style={{
+                      fontSize: '0.7rem',
+                      color: 'var(--text-muted)',
+                      marginBottom: '1.25rem',
+                      textAlign: 'right'
+                    }}
+                  >
+                    {prescriptionText.length} / 2000
+                  </p>
+
+                  {/* Prescription image upload */}
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      marginBottom: '0.5rem',
+                      color: 'var(--text-secondary)'
+                    }}
+                  >
+                    Or Upload a Picture of Your Prescription
                   </label>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    {lensOptions.map((opt, idx) => {
-                      const isSelected = selectedLensIdx === idx;
-                      return (
-                        <label
-                          key={idx}
+                  {prescriptionImage ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        padding: '0.6rem 0.9rem',
+                        border: '1px solid var(--border-light)',
+                        backgroundColor: 'var(--bg-primary)',
+                        borderRadius: 'var(--radius-sm)',
+                        marginBottom: '1rem'
+                      }}
+                    >
+                      <img
+                        src={prescriptionImage}
+                        alt="Prescription preview"
+                        style={{
+                          width: '48px',
+                          height: '48px',
+                          objectFit: 'cover',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1px solid var(--border-light)'
+                        }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
                           style={{
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: '0.75rem',
-                            padding: '0.75rem 0.9rem',
-                            border: isSelected
-                              ? '2px solid var(--text-primary)'
-                              : '1px solid var(--border-light)',
-                            borderRadius: 'var(--radius-sm)',
-                            backgroundColor: 'var(--bg-primary)',
-                            cursor: 'pointer',
-                            transition: 'border-color 0.15s'
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            color: 'var(--text-primary)'
                           }}
                         >
-                          <input
-                            type="radio"
-                            name="lensOption"
-                            checked={isSelected}
-                            onChange={() => setSelectedLensIdx(idx)}
-                            style={{
-                              marginTop: '3px',
-                              flexShrink: 0,
-                              cursor: 'pointer'
-                            }}
-                          />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div
+                          Prescription attached
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.7rem',
+                            color: 'var(--text-muted)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {prescriptionImage.split('/').pop()}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemovePrescriptionImage}
+                        style={{
+                          fontSize: '0.7rem',
+                          color: '#c53030',
+                          padding: '0.4rem 0.6rem',
+                          border: '1px solid #feb2b2',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          background: 'transparent'
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.7rem 1.2rem',
+                        border: '1px dashed var(--border-light)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.8rem',
+                        color: 'var(--text-secondary)',
+                        cursor: uploading ? 'wait' : 'pointer',
+                        backgroundColor: 'var(--bg-primary)',
+                        marginBottom: '1rem'
+                      }}
+                    >
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        onChange={handlePrescriptionImageUpload}
+                        disabled={uploading}
+                        style={{ display: 'none' }}
+                      />
+                      {uploading ? 'Uploading…' : '+ Choose Image'}
+                    </label>
+                  )}
+
+                  {uploadError && (
+                    <p
+                      style={{
+                        fontSize: '0.75rem',
+                        color: '#c53030',
+                        marginTop: '-0.5rem',
+                        marginBottom: '1rem'
+                      }}
+                    >
+                      {uploadError}
+                    </p>
+                  )}
+
+                  {/* Cylinder note */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '0.6rem',
+                      paddingTop: '1rem',
+                      borderTop: '1px solid var(--border-light)',
+                      fontSize: '0.75rem',
+                      color: 'var(--text-muted)',
+                      lineHeight: '1.6'
+                    }}
+                  >
+                    <span style={{ flexShrink: 0, marginTop: '1px' }}>ⓘ</span>
+                    <span>
+                      If your prescription includes a <strong>cylinder / cylindrical</strong>{' '}
+                      number, we will contact you on WhatsApp to confirm before dispatching
+                      your order.
+                    </span>
+                  </div>
+
+                  {/* Lens Options — only when the admin configured them */}
+                  {lensOptions.length > 0 && (
+                    <div
+                      style={{
+                        marginTop: '1.25rem',
+                        paddingTop: '1rem',
+                        borderTop: '1px solid var(--border-light)'
+                      }}
+                    >
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.08em',
+                          marginBottom: '0.75rem',
+                          color: 'var(--text-secondary)'
+                        }}
+                      >
+                        Select Lens Type
+                      </label>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                        {lensOptions.map((opt, idx) => {
+                          const isSelected = selectedLensIdx === idx;
+                          return (
+                            <label
+                              key={idx}
                               style={{
                                 display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'baseline',
-                                gap: '0.5rem',
-                                flexWrap: 'wrap'
+                                alignItems: 'flex-start',
+                                gap: '0.75rem',
+                                padding: '0.75rem 0.9rem',
+                                border: isSelected
+                                  ? '2px solid var(--text-primary)'
+                                  : '1px solid var(--border-light)',
+                                borderRadius: 'var(--radius-sm)',
+                                backgroundColor: 'var(--bg-primary)',
+                                cursor: 'pointer',
+                                transition: 'border-color 0.15s'
                               }}
                             >
-                              <span
+                              <input
+                                type="radio"
+                                name="lensOption"
+                                checked={isSelected}
+                                onChange={() => setSelectedLensIdx(idx)}
                                 style={{
-                                  fontSize: '0.85rem',
-                                  fontWeight: 700,
-                                  color: 'var(--text-primary)'
+                                  marginTop: '3px',
+                                  flexShrink: 0,
+                                  cursor: 'pointer'
                                 }}
-                              >
-                                {opt.name}
-                              </span>
-                              <span
-                                style={{
-                                  fontSize: '0.85rem',
-                                  fontWeight: 700,
-                                  color: opt.price > 0 ? 'var(--text-primary)' : '#137333',
-                                  whiteSpace: 'nowrap'
-                                }}
-                              >
-                                {opt.price > 0
-                                  ? `+PKR ${Number(opt.price).toLocaleString()}`
-                                  : 'Free'}
-                              </span>
-                            </div>
-                            {opt.description && (
-                              <p
-                                style={{
-                                  fontSize: '0.75rem',
-                                  color: 'var(--text-muted)',
-                                  lineHeight: '1.5',
-                                  marginTop: '0.25rem'
-                                }}
-                              >
-                                {opt.description}
-                              </p>
-                            )}
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
+                              />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'baseline',
+                                    gap: '0.5rem',
+                                    flexWrap: 'wrap'
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      fontSize: '0.85rem',
+                                      fontWeight: 700,
+                                      color: 'var(--text-primary)'
+                                    }}
+                                  >
+                                    {opt.name}
+                                  </span>
+                                  <span
+                                    style={{
+                                      fontSize: '0.85rem',
+                                      fontWeight: 700,
+                                      color: opt.price > 0 ? 'var(--text-primary)' : '#137333',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    {opt.price > 0
+                                      ? `+PKR ${Number(opt.price).toLocaleString()}`
+                                      : 'Free'}
+                                  </span>
+                                </div>
+                                {opt.description && (
+                                  <p
+                                    style={{
+                                      fontSize: '0.75rem',
+                                      color: 'var(--text-muted)',
+                                      lineHeight: '1.5',
+                                      marginTop: '0.25rem'
+                                    }}
+                                  >
+                                    {opt.description}
+                                  </p>
+                                )}
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -975,8 +1014,10 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* Customer Reviews Section */}
-        <ReviewSection productId={product._id} productName={product.name} />
+        {/* Customer Reviews Section — centered on desktop via .pdp-reviews */}
+        <div className="pdp-reviews">
+          <ReviewSection productId={product._id} productName={product.name} />
+        </div>
 
         {/* Related Products Section */}
         {relatedProducts.length > 0 && (
@@ -1143,6 +1184,22 @@ export default function ProductDetail() {
           }
           .pdp-delivery-connector-active {
             background-color: #C5221F;
+          }
+
+          /* Desktop-only: center the Customer Reviews section horizontally
+             across the full width of the PDP grid. Mobile and tablet are
+             untouched — the media queries above still control those. */
+          @media (min-width: 1025px) {
+            .pdp-grid > .pdp-reviews {
+              grid-column: 1 / -1;
+              width: 100%;
+              display: flex;
+              justify-content: center;
+            }
+            .pdp-reviews > * {
+              width: 100%;
+              max-width: 900px;
+            }
           }
         `}</style>
       </div>

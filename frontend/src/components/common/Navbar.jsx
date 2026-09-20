@@ -105,58 +105,80 @@ export default function Navbar() {
     >
       {/* Top Announcement Bar */}
       {announcementEnabled && announcementText && (
-  <div
-    style={{
-      backgroundColor: 'var(--bg-dark)',
-      color: 'lightgray',
-      padding: '0.45rem 0',
-      fontSize: '0.75rem',
-      borderBottom: '1px solid var(--border-light)',
-      fontWeight: 700,
-      overflow: 'hidden',
-      whiteSpace: 'nowrap',
-      width: '100%',
-      maxWidth: '100vw'
-    }}
-  >
-    <div
-      className="marquee-track"
-      style={{
-        display: 'flex',
-        width: 'max-content',
-        willChange: 'transform',
-        animation: 'marqueeScroll 30s linear infinite'
-      }}
-    >
-      {[0, 1].map((groupIdx) => (
-        <div key={groupIdx} style={{ display: 'flex' }}>
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              style={{
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                paddingRight: '4rem',
-                flexShrink: 0
-              }}
-            >
-              {announcementText}
-            </span>
-          ))}
+        <div
+          style={{
+            backgroundColor: 'var(--bg-dark)',
+            color: 'lightgray',
+            padding: '0.45rem 0',
+            fontSize: '0.75rem',
+            borderBottom: '1px solid var(--border-light)',
+            fontWeight: 700,
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+            width: '100%',
+            maxWidth: '100vw'
+          }}
+        >
+          <div
+            className="marquee-track"
+            style={{
+              display: 'flex',
+              width: 'max-content',
+              willChange: 'transform',
+              animation: 'marqueeScroll 30s linear infinite'
+            }}
+          >
+            {/* Group 1 — the visible copy at the start of the loop */}
+            <div style={{ display: 'flex', flexShrink: 0 }}>
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  style={{
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    paddingRight: '4rem',
+                    flexShrink: 0
+                  }}
+                >
+                  {announcementText}
+                </span>
+              ))}
+            </div>
+
+            {/* Group 2 — exact duplicate; this is what makes the loop seamless */}
+            <div style={{ display: 'flex', flexShrink: 0 }} aria-hidden="true">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  style={{
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    paddingRight: '4rem',
+                    flexShrink: 0
+                  }}
+                >
+                  {announcementText}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <style>{`
+            /* Two identical groups sit side-by-side inside .marquee-track.
+               We slide the whole track left by exactly 50% of its own
+               width — which is exactly one group's width. At t=100% the
+               second group is sitting where the first group started, so
+               the browser's snap back to t=0 is visually invisible. */
+            @keyframes marqueeScroll {
+              0%   { transform: translate3d(0, 0, 0); }
+              100% { transform: translate3d(-50%, 0, 0); }
+            }
+            .marquee-track:hover {
+              animation-play-state: paused;
+            }
+          `}</style>
         </div>
-      ))}
-    </div>
-    <style>{`
-      @keyframes marqueeScroll {
-        0%   { transform: translate3d(0, 0, 0); }
-        100% { transform: translate3d(-50%, 0, 0); }
-      }
-      .marquee-track:hover {
-        animation-play-state: paused;
-      }
-    `}</style>
-  </div>
-)}
+      )}
 
       {/* Main Navigation Header — 3-column grid: logo | nav | icons */}
       <div
