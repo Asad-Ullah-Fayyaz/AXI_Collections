@@ -30,6 +30,4 @@ Thumbs.db
 
 # Uploads (user content)
 backend/uploads/
-backend/superAdmin.md
-
-/superAdmin.txt
+backend/superAdmin.txt

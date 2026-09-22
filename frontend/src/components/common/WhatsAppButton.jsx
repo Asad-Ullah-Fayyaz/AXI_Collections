@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 
-const DEFAULT_NUMBER = '03085611754';
+const DEFAULT_NUMBER = '03100051982';
 
 export default function WhatsAppButton() {
   const [phone, setPhone] = useState(DEFAULT_NUMBER);
@@ -19,7 +19,7 @@ export default function WhatsAppButton() {
     load();
   }, []);
 
-  // 03085611754 → 923085611754 (required for wa.me)
+  // 03100051982→ 923100051982 (required for wa.me)
   const digits = String(phone).replace(/\D/g, '');
   const normalized = digits.startsWith('0') ? `92${digits.slice(1)}` : digits;
   const message = encodeURIComponent(

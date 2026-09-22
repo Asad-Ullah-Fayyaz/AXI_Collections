@@ -239,9 +239,15 @@ export default function ProductDetail() {
       >
         <Link to="/">Home</Link> <ChevronRight size={12} />
         <Link to="/products">Catalog</Link> <ChevronRight size={12} />
-        <Link to={`/products?category=${product.category?.slug}`}>
-          {product.category?.name}
-        </Link>{' '}
+        {(product.categoryPath?.l1 || product.categoryPath?.l2 || product.categoryPath?.l3) &&
+          [product.categoryPath.l1, product.categoryPath.l2, product.categoryPath.l3]
+            .filter(Boolean)
+            .map((category) => (
+              <React.Fragment key={category._id}>
+                <ChevronRight size={12} />
+                <Link to={`/products?category=${category.slug}`}>{category.name}</Link>
+              </React.Fragment>
+            ))}
         <ChevronRight size={12} />
         <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
           {product.name}
@@ -327,8 +333,10 @@ export default function ProductDetail() {
               fontWeight: 600
             }}
           >
-            {product.category?.name}{' '}
-            {product.subCategory ? ` / ${product.subCategory.name}` : ''}
+            {[product.categoryPath?.l1, product.categoryPath?.l2, product.categoryPath?.l3]
+              .filter(Boolean)
+              .map((category) => category.name)
+              .join(' / ')}
           </span>
 
           <h1

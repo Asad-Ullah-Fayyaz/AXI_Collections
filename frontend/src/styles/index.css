@@ -48,9 +48,8 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Prevent horizontal overflow globally */
   overflow-x: hidden;
-  max-width: 100vw;
+  max-width: 100%;
 }
 
 body {
@@ -59,15 +58,14 @@ body {
   font-family: var(--font-sans);
   line-height: 1.6;
   min-height: 100vh;
-  /* Robust overflow protection */
   overflow-x: hidden;
-  max-width: 100vw;
+  max-width: 100%;
   width: 100%;
   position: relative;
 }
 
 #root {
-  overflow-x: hidden;
+  /* overflow-x removed — it breaks position: sticky on the navbar. */
   width: 100%;
 }
 
@@ -309,7 +307,7 @@ img {
   background-color: #FFFFFF;
   color: var(--text-primary);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-  font-size: 16px; /* Prevents iOS zoom on focus */
+  font-size: 16px;
   max-width: 100%;
 }
 
@@ -354,8 +352,7 @@ img {
   }
 }
 
-/* Desktop-only: equal-height cards + full-width related section.
-   Tablet and mobile are untouched. */
+/* Desktop-only: equal-height cards + full-width related section. */
 @media (min-width: 1025px) {
   .grid-products > .product-card {
     display: flex;
@@ -379,7 +376,7 @@ img {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
-  min-width: 560px; /* forces horizontal scroll on small screens instead of squishing */
+  min-width: 560px;
 }
 
 .custom-table th {
@@ -419,27 +416,22 @@ img {
    NAVIGATION BAR — REFINED SMOOTH HOVER & SINGLE-LINE LAYOUT SYSTEM
    ========================================================================== */
 
-/* Prevent any header child from forcing horizontal overflow */
 header {
   width: 100%;
-  max-width: 100vw;
-  overflow-x: hidden;
+  max-width: 100%;
 }
 
-/* Marquee / announcement bar safety */
 .marquee-track {
   flex-shrink: 0;
   min-width: max-content;
 }
 
-/* Logo pushed to the far left of the header row (desktop) */
 .logo-image,
 .logo-link {
   margin-right: auto !important;
   flex-shrink: 0;
 }
 
-/* Keep desktop navigation inline and prevent text wrapping */
 .desktop-nav {
   display: flex !important;
   align-items: center !important;
@@ -447,7 +439,6 @@ header {
   min-width: 0;
 }
 
-/* Main Header Desktop Links Styling & Smooth Hover */
 .desktop-nav a {
   padding: 0.45rem 0.85rem;
   border-radius: var(--radius-sm);
@@ -465,13 +456,11 @@ header {
   transform: translateY(-1px);
 }
 
-/* Parent Dropdown Category Container Alignment */
 .desktop-nav > div {
   display: flex;
   align-items: center;
 }
 
-/* Subcategory Dropdown Panel Items Hover */
 .desktop-nav div[style*="position: absolute"] a {
   border-radius: var(--radius-sm);
   transition: background-color var(--transition-smooth),
@@ -483,7 +472,6 @@ header {
   color: #FFFFFF !important;
 }
 
-/* Navigation Icon Action Buttons (Search, User, Cart) */
 header button:not(.mobile-menu-btn),
 header .user-dropdown-container a {
   display: inline-flex;
@@ -505,7 +493,6 @@ header .user-dropdown-container a:hover {
   transform: translateY(-1px);
 }
 
-/* Mobile Menu Links Styling & Smooth Hover */
 div[style*="position: fixed"] a {
   transition: background-color var(--transition-smooth),
               color var(--transition-smooth),
@@ -523,11 +510,7 @@ div[style*="position: fixed"] a:hover {
    GLOBAL RESPONSIVE HELPERS
    ========================================================================== */
 
-/* Desktop nav visibility at ≤900px handled by Navbar's inline <style> block.
-   Below are additional breakpoints and utilities. */
-
 @media (max-width: 900px) {
-  /* Products page filter drawer (already handled in Products.jsx inline styles) */
   .filter-drawer {
     display: none;
   }
@@ -536,14 +519,12 @@ div[style*="position: fixed"] a:hover {
   }
 }
 
-/* Medium screens (tablets) */
 @media (max-width: 1024px) {
   .container {
     padding: 0 1.25rem;
   }
 }
 
-/* Small tablets / large phones */
 @media (max-width: 768px) {
   .container {
     padding: 0 1rem;
@@ -568,7 +549,6 @@ div[style*="position: fixed"] a:hover {
   }
 }
 
-/* Phones */
 @media (max-width: 480px) {
   .container {
     padding: 0 0.85rem;
@@ -590,7 +570,6 @@ div[style*="position: fixed"] a:hover {
   }
 }
 
-/* Very small phones */
 @media (max-width: 360px) {
   .container {
     padding: 0 0.75rem;

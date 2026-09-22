@@ -1,1 +1,96 @@
 
+# Super Admin — bcrypt hash generation + where to put it
+
+## The command
+
+Open your terminal, `cd` into the `backend` folder, and run:
+
+```bash
+cd backend
+node -e "console.log(require('bcryptjs').hashSync('YOUR_NEW_PASSWORD_HERE', 10))"
+```
+
+**Replace `YOUR_NEW_PASSWORD_HERE` with the actual password you want** (keep it inside the single quotes). Do not use spaces inside the password unless you also wrap the whole thing properly.
+
+Example — if your password is `Ibrahim@2026`:
+
+```bash
+cd backend
+node -e "console.log(require('bcryptjs').hashSync('Ibrahim@2026', 10))"
+```
+
+**Important:** the `10` at the end is the bcrypt cost factor. It **must** match `SECURITY.BCRYPT_SALT_ROUNDS: 10` in your `backend/src/config/constants.js`. If it doesn't match, login timing analysis becomes possible. It matches today — keep it that way.
+
+## What the command outputs
+
+A 60-character string that looks like this:
+
+```
+$2a$10$VS8ors4h9fSE0Q/KuIpxLuPBvV5p1AJsdVbrIa3DawHpvYzBH8TjW
+```
+
+**That is the hash. Copy it exactly.** Do not add quotes. Do not add spaces before or after. Do not line-break it. `$2a$10$` is the algorithm+cost prefix, and the remaining 53 characters are the salted hash.
+
+## Where to write it
+
+Open `backend/.env`. Find this line:
+
+```
+SUPER_ADMIN_PASSWORD_HASH=$2a$10$VS8ors4h9fSE0Q/KuIpxLuPBvV5p1AJsdVbrIa3DawHpvYzBH8TjW
+```
+
+**Replace the value after the `=` with your new hash.** No quotes, no spaces.
+
+Before:
+```
+SUPER_ADMIN_PASSWORD_HASH=$2a$10$VS8ors4h9fSE0Q/KuIpxLuPBvV5p1AJsdVbrIa3DawHpvYzBH8TjW
+```
+
+After (example — your actual new hash will differ):
+```
+SUPER_ADMIN_PASSWORD_HASH=$2a$10$Xy9Kp2Lm8Nv4Qr7Ts1Uw3Za5Bc6Dd8Ee9Ff0Gg1Hh2Ii3Jj4Kk5Ll6
+```
+
+**Do not change `SUPER_ADMIN_EMAIL`** unless you also want to change the login email. Same rule — no quotes, no spaces:
+
+```
+SUPER_ADMIN_EMAIL=ibrahim@admin.com
+```
+
+## Then restart the backend
+
+The `.env` file is read **once**, when Node starts. Editing it while the server is running does nothing.
+
+1. Go to the terminal running the backend.
+2. Press `Ctrl+C` to stop it.
+3. Run `node src/server.js` again.
+
+## Then log in
+
+Go to `/admin/login` in the browser. Use:
+
+- **Email:** the value of `SUPER_ADMIN_EMAIL` in `.env`
+- **Password:** the plaintext password you typed into the hash command
+
+## Summary table
+
+| Step | Where | What |
+|---|---|---|
+| 1. Generate hash | Terminal, inside `backend/` | `node -e "console.log(require('bcryptjs').hashSync('YourPassword', 10))"` |
+| 2. Copy output | Terminal output | The 60-character `$2a$10$...` string |
+| 3. Paste into env | `backend/.env` | After `SUPER_ADMIN_PASSWORD_HASH=` — no quotes, no spaces |
+| 4. Save | `backend/.env` | Ctrl+S |
+| 5. Restart | Terminal | `Ctrl+C`, then `node src/server.js` |
+| 6. Log in | Browser | `/admin/login` with email + new password |
+
+## Common mistakes
+
+- **Wrapping the hash in quotes** — `SUPER_ADMIN_PASSWORD_HASH="$2a$10$..."` will break. `.env` will pass the quotes through as literal characters.
+- **Trailing whitespace** — a space or tab after the hash will be included in the string, and `bcrypt.compare` will fail.
+- **Line break in the middle of the hash** — must be one line.
+- **Forgetting to restart** — the old hash stays loaded in memory until Node restarts.
+- **Using a different cost factor** — must be `10`, matching `constants.js`.
+
+## One security note
+
+The hash `$2a$10$VS8ors4h9fSE0Q/KuIpxLuPBvV5p1AJsdVbrIa3DawHpvYzBH8TjW` you currently have in `.env` **was pasted into this chat earlier**. Treat it as compromised. Generate a new hash from a new password now, replace it in `.env`, restart. That's the whole rotation process — three steps.

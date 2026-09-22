@@ -26,7 +26,6 @@ export default function Products() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const categoryParam = searchParams.get('category') || '';
-  const subCategoryParam = searchParams.get('subCategory') || '';
   const searchParam = searchParams.get('search') || '';
   const sortParam = searchParams.get('sort') || 'newest';
   const pageParam = parseInt(searchParams.get('page') || '1', 10);
@@ -60,7 +59,6 @@ export default function Products() {
   useEffect(() => {
     const params = new URLSearchParams();
     if (categoryParam) params.append('category', categoryParam);
-    if (subCategoryParam) params.append('subCategory', subCategoryParam);
     if (searchParam) params.append('search', searchParam);
     if (sortParam) params.append('sort', sortParam);
     if (inStockParam) params.append('inStock', 'true');
@@ -70,11 +68,7 @@ export default function Products() {
     params.append('limit', '12');
 
     dispatch(fetchProducts(params.toString()));
-  }, [dispatch, categoryParam, subCategoryParam, searchParam, sortParam, pageParam, inStockParam, minPrice, maxPrice]);
-
-  const updateParam = (key, value) => {
-    updateParams({ [key]: value });
-  };
+  }, [dispatch, categoryParam, searchParam, sortParam, pageParam, inStockParam, minPrice, maxPrice]);
 
   const updateParams = (updates) => {
     const newParams = new URLSearchParams(searchParams);
@@ -132,9 +126,18 @@ export default function Products() {
     return pages;
   };
 
-  const activeCategoryObj = categories.find((c) => c.slug === categoryParam);
+  const findCategoryBySlug = (nodes, slug) => {
+    for (const node of nodes) {
+      if (node.slug === slug) return node;
+      const found = findCategoryBySlug(node.children || [], slug);
+      if (found) return found;
+    }
+    return null;
+  };
+
+  const activeCategoryObj = findCategoryBySlug(categories, categoryParam);
   const hasActiveFilters =
-    categoryParam || subCategoryParam || searchParam || minPrice || maxPrice || inStockParam;
+    categoryParam || searchParam || minPrice || maxPrice || inStockParam;
 
   return (
     <div className="container products-page" style={{ padding: '3rem 1.5rem' }}>
@@ -300,7 +303,7 @@ export default function Products() {
                 }}
               >
                 <button
-                  onClick={() => updateParams({ category: '', subCategory: '' })}
+                  onClick={() => updateParams({ category: '' })}
                   style={{
                     textAlign: 'left',
                     fontWeight: !categoryParam ? 700 : 400,
@@ -312,7 +315,7 @@ export default function Products() {
                 {categories.map((cat) => (
                   <div key={cat._id}>
                     <button
-                      onClick={() => updateParams({ category: cat.slug, subCategory: '' })}
+                      onClick={() => updateParams({ category: cat.slug })}
                       style={{
                         textAlign: 'left',
                         width: '100%',
@@ -323,9 +326,9 @@ export default function Products() {
                       {cat.name}
                     </button>
 
-                    {categoryParam === cat.slug &&
-                      cat.subCategories &&
-                      cat.subCategories.length > 0 && (
+                    {(categoryParam === cat.slug || cat.children?.some((child) =>
+                      child.slug === categoryParam || child.children?.some((grandchild) => grandchild.slug === categoryParam)
+                    )) && cat.children && cat.children.length > 0 && (
                         <div
                           style={{
                             paddingLeft: '1rem',
@@ -335,22 +338,24 @@ export default function Products() {
                             gap: '0.4rem'
                           }}
                         >
-                          {cat.subCategories.map((sub) => (
-                            <button
-                              key={sub._id}
-                              onClick={() => updateParam('subCategory', sub.slug)}
-                              style={{
-                                textAlign: 'left',
-                                fontSize: '0.8rem',
-                                fontWeight: subCategoryParam === sub.slug ? 700 : 400,
-                                color:
-                                  subCategoryParam === sub.slug
-                                    ? '#000'
-                                    : 'var(--text-muted)'
-                              }}
-                            >
-                              &bull; {sub.name}
-                            </button>
+                          {cat.children.map((l2) => (
+                            <div key={l2._id}>
+                              <button
+                                onClick={() => updateParams({ category: l2.slug })}
+                                style={{ textAlign: 'left', fontSize: '0.8rem', fontWeight: categoryParam === l2.slug ? 700 : 400, color: categoryParam === l2.slug ? '#000' : 'var(--text-muted)' }}
+                              >
+                                &bull; {l2.name}
+                              </button>
+                              {((categoryParam === l2.slug) || l2.children?.some((l3) => l3.slug === categoryParam)) && l2.children?.length > 0 && (
+                                <div style={{ paddingLeft: '1.5rem', marginTop: '0.35rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                  {l2.children.map((l3) => (
+                                    <button key={l3._id} onClick={() => updateParams({ category: l3.slug })} style={{ textAlign: 'left', fontSize: '0.78rem', fontWeight: categoryParam === l3.slug ? 700 : 400, color: categoryParam === l3.slug ? '#000' : 'var(--text-muted)' }}>
+                                      – {l3.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           ))}
                         </div>
                       )}
