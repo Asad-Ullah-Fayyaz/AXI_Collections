@@ -171,3 +171,4 @@ to be broken or incomplete and are being fixed in phases — notably product edi
 category editing, dual pricing (original + selling price), the Buy Now flow, and
 responsive layout across the admin panel. Check with the team before assuming a given
 admin screen works end to end.
+complete axi collection
