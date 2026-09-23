@@ -165,7 +165,7 @@ export default function Navbar() {
 
   return (
     <header
-      className="navbar-header"
+        className={`navbar-header${announcementEnabled && announcementText ? ' has-announcement' : ''}`}
       style={{
         position: 'fixed',
         top: 0,

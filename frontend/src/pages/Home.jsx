@@ -1,32 +1,57 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { ArrowRight } from 'lucide-react';
-import ProductCard from '../components/product/ProductCard';
-import HomeReviewsSection from '../components/home/HomeReviewsSection';
-import { fetchCategories, selectCategories } from '../store/slices/categoriesSlice';
-import { fetchFeaturedProducts, selectFeaturedProducts } from '../store/slices/productsSlice';
-import api, { toAbsoluteUrl } from '../services/api';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
+import { Link } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { ArrowRight } from "lucide-react";
+import ProductCard from "../components/product/ProductCard";
+import HomeReviewsSection from "../components/home/HomeReviewsSection";
+import {
+  fetchCategories,
+  selectCategories,
+} from "../store/slices/categoriesSlice";
+import {
+  fetchFeaturedProducts,
+  selectFeaturedProducts,
+} from "../store/slices/productsSlice";
+import api, { toAbsoluteUrl } from "../services/api";
 
 const EMPTY_CONTENT = {
-  announcement: { text: '', enabled: false },
+  announcement: { text: "", enabled: false },
   hero: {
-    badge: '',
-    heading: '',
-    subheading: '',
-    backgroundImage: '',
+    badge: "",
+    heading: "",
+    subheading: "",
+    backgroundImage: "",
     images: [],
-    video: '',
+    video: "",
     slideInterval: 4.5,
     overlayOpacity: 0.9,
-    primaryBtnText: '',
-    primaryBtnLink: '/products',
-    secondaryBtnText: '',
-    secondaryBtnLink: '/products'
+    primaryBtnText: "",
+    primaryBtnLink: "/products",
+    secondaryBtnText: "",
+    secondaryBtnLink: "/products",
   },
-  categoriesSection: { eyebrow: '', heading: '' },
-  featuredSection: { eyebrow: '', heading: '', ctaText: '', ctaLink: '/products' },
-  brandStory: { eyebrow: '', heading: '', paragraph1: '', paragraph2: '', ctaText: '', ctaLink: '/products', image: '' }
+  categoriesSection: { eyebrow: "", heading: "" },
+  featuredSection: {
+    eyebrow: "",
+    heading: "",
+    ctaText: "",
+    ctaLink: "/products",
+  },
+  brandStory: {
+    eyebrow: "",
+    heading: "",
+    paragraph1: "",
+    paragraph2: "",
+    ctaText: "",
+    ctaLink: "/products",
+    image: "",
+  },
 };
 
 function mergeContent(apiContent) {
@@ -41,7 +66,7 @@ function mergeContent(apiContent) {
 }
 
 /* Scroll-reveal hook — callback-ref based with a safety net. */
-function useReveal({ threshold = 0.15, rootMargin = '0px 0px -10% 0px' } = {}) {
+function useReveal({ threshold = 0.15, rootMargin = "0px 0px -10% 0px" } = {}) {
   const [inView, setInView] = useState(false);
   const [node, setNode] = useState(null);
   const observerRef = useRef(null);
@@ -52,7 +77,10 @@ function useReveal({ threshold = 0.15, rootMargin = '0px 0px -10% 0px' } = {}) {
   useEffect(() => {
     if (!node) return undefined;
 
-    if (typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') {
+    if (
+      typeof window === "undefined" ||
+      typeof IntersectionObserver === "undefined"
+    ) {
       setInView(true);
       return undefined;
     }
@@ -71,7 +99,9 @@ function useReveal({ threshold = 0.15, rootMargin = '0px 0px -10% 0px' } = {}) {
       window.innerHeight || document.documentElement.clientHeight || 0;
     const targetVisiblePx = Math.min(rect.height, viewportH) * 0.5;
     const maxSafeThreshold =
-      rect.height > 0 ? Math.max(0.05, targetVisiblePx / rect.height) : threshold;
+      rect.height > 0
+        ? Math.max(0.05, targetVisiblePx / rect.height)
+        : threshold;
     const safeThreshold = Math.min(threshold, maxSafeThreshold);
 
     const observer = new IntersectionObserver(
@@ -88,7 +118,7 @@ function useReveal({ threshold = 0.15, rootMargin = '0px 0px -10% 0px' } = {}) {
           }
         });
       },
-      { threshold: safeThreshold, rootMargin }
+      { threshold: safeThreshold, rootMargin },
     );
 
     observer.observe(node);
@@ -119,13 +149,17 @@ function useReveal({ threshold = 0.15, rootMargin = '0px 0px -10% 0px' } = {}) {
 }
 
 function useRevealLate() {
-  return useReveal({ threshold: 0.25, rootMargin: '0px 0px -10% 0px' });
+  return useReveal({ threshold: 0.25, rootMargin: "0px 0px -10% 0px" });
 }
+
 const optimizeVideoUrl = (url) => {
-  if (!url || typeof url !== 'string') return url;
-  if (!url.includes('/video/upload/')) return url;
+  if (!url || typeof url !== "string") return url;
+  if (!url.includes("/video/upload/")) return url;
   if (/\/video\/upload\/[^/]*,/.test(url)) return url;
-  return url.replace('/video/upload/', '/video/upload/w_960,q_auto:good,f_auto/');
+  return url.replace(
+    "/video/upload/",
+    "/video/upload/w_960,q_auto:good,f_auto/",
+  );
 };
 const HERO_SLIDE_MS = 900;
 
@@ -133,17 +167,17 @@ function HeroMediaSlider({ hero }) {
   const slides = useMemo(() => {
     const list = [];
     if (hero?.video) {
-      list.push({ type: 'video', src: toAbsoluteUrl(hero.video) });
+      list.push({ type: "video", src: toAbsoluteUrl(hero.video) });
     }
     const imgs =
       hero?.images && hero.images.length
         ? hero.images
         : hero?.backgroundImage
-        ? [hero.backgroundImage]
-        : [];
-    imgs.filter(Boolean).forEach((img) =>
-      list.push({ type: 'image', src: toAbsoluteUrl(img) })
-    );
+          ? [hero.backgroundImage]
+          : [];
+    imgs
+      .filter(Boolean)
+      .forEach((img) => list.push({ type: "image", src: toAbsoluteUrl(img) }));
     return list;
   }, [hero?.video, hero?.images, hero?.backgroundImage]);
 
@@ -163,7 +197,8 @@ function HeroMediaSlider({ hero }) {
 
   const goTo = useCallback((nextIndex) => {
     setActive((currentActive) => {
-      if (nextIndex === currentActive || nextIndex == null) return currentActive;
+      if (nextIndex === currentActive || nextIndex == null)
+        return currentActive;
       setPrev(currentActive);
 
       if (cleanupRef.current) clearTimeout(cleanupRef.current);
@@ -180,8 +215,10 @@ function HeroMediaSlider({ hero }) {
     if (videoRef.current) {
       const v = videoRef.current;
       const currentSlide = slides[active];
-      if (currentSlide?.type !== 'video') {
-        try { v.pause(); } catch (e) {}
+      if (currentSlide?.type !== "video") {
+        try {
+          v.pause();
+        } catch (e) {}
       }
     }
   }, [active, slides]);
@@ -190,7 +227,7 @@ function HeroMediaSlider({ hero }) {
     clearTimeout(timerRef.current);
     if (slides.length < 2) return undefined;
     const current = slides[active];
-    if (!current || current.type !== 'image') return undefined;
+    if (!current || current.type !== "image") return undefined;
 
     timerRef.current = setTimeout(() => {
       goTo((active + 1) % slides.length);
@@ -201,14 +238,14 @@ function HeroMediaSlider({ hero }) {
 
   useEffect(() => {
     const current = slides[active];
-    if (current?.type === 'video' && videoRef.current) {
+    if (current?.type === "video" && videoRef.current) {
       const v = videoRef.current;
       try {
         v.currentTime = 0;
         v.muted = true;
         v.playsInline = true;
         const p = v.play();
-        if (p && typeof p.catch === 'function') p.catch(() => {});
+        if (p && typeof p.catch === "function") p.catch(() => {});
       } catch (e) {}
     }
   }, [active, slides]);
@@ -218,7 +255,7 @@ function HeroMediaSlider({ hero }) {
       if (cleanupRef.current) clearTimeout(cleanupRef.current);
       if (timerRef.current) clearTimeout(timerRef.current);
     },
-    []
+    [],
   );
 
   if (!slides.length) return null;
@@ -227,7 +264,7 @@ function HeroMediaSlider({ hero }) {
   const prevSlide = prev != null ? slides[prev] : null;
 
   const renderMedia = (slide, isActive, ref) => {
-    if (slide.type === 'video') {
+    if (slide.type === "video") {
       return (
         <video
           ref={isActive ? ref : null}
@@ -237,7 +274,9 @@ function HeroMediaSlider({ hero }) {
           playsInline
           autoPlay={isActive}
           preload="auto"
-          onEnded={isActive ? () => goTo((active + 1) % slides.length) : undefined}
+          onEnded={
+            isActive ? () => goTo((active + 1) % slides.length) : undefined
+          }
         />
       );
     }
@@ -255,7 +294,9 @@ function HeroMediaSlider({ hero }) {
       )}
 
       <div key={`active-${active}`} className="hero-slide hero-slide--enter">
-        <div className={`hero-slide-zoom${currentSlide.type === 'image' ? ' is-active' : ''}`}>
+        <div
+          className={`hero-slide-zoom${currentSlide.type === "image" ? " is-active" : ""}`}
+        >
           {renderMedia(currentSlide, true, videoRef)}
         </div>
       </div>
@@ -265,8 +306,8 @@ function HeroMediaSlider({ hero }) {
         style={{
           background: `linear-gradient(rgba(250,250,250,${Math.max(
             0,
-            overlayOpacity - 0.05
-          )}), rgba(250,250,250,${overlayOpacity}))`
+            overlayOpacity - 0.05,
+          )}), rgba(250,250,250,${overlayOpacity}))`,
         }}
       />
 
@@ -275,12 +316,12 @@ function HeroMediaSlider({ hero }) {
           {slides.map((_, i) => (
             <span
               key={i}
-              className={`hero-dot${i === active ? ' is-active' : ''}`}
+              className={`hero-dot${i === active ? " is-active" : ""}`}
               onClick={() => goTo(i)}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') goTo(i);
+                if (e.key === "Enter" || e.key === " ") goTo(i);
               }}
             />
           ))}
@@ -303,7 +344,7 @@ export default function Home() {
 
     const loadHomeData = async () => {
       try {
-        const contentRes = await api.get('/site-content/homepage');
+        const contentRes = await api.get("/site-content/homepage");
         if (contentRes.success) {
           setContent(mergeContent(contentRes.content));
         } else {
@@ -349,7 +390,7 @@ export default function Home() {
     brandStory?.paragraph2 ||
     brandStory?.image
   );
-  const brandImage = brandStory?.image ? toAbsoluteUrl(brandStory.image) : '';
+  const brandImage = brandStory?.image ? toAbsoluteUrl(brandStory.image) : "";
 
   const [categoriesRef, categoriesInView] = useRevealLate();
   const [featuredRef, featuredInView] = useReveal();
@@ -357,39 +398,52 @@ export default function Home() {
 
   return (
     <div className="home">
-      {hasHeroContent && (
-        <section className="home-hero">
-          <HeroMediaSlider hero={hero} />
+      <section className="home-hero" id="home-top">
+        {hasHeroContent ? (
+          <>
+            <HeroMediaSlider hero={hero} />
 
-          <div className="container home-hero-inner">
-            {hero.badge && (
-              <span className="badge badge-gold home-hero-badge">{hero.badge}</span>
-            )}
-            {hero.heading && <h1 className="home-hero-title">{hero.heading}</h1>}
-            {hero.subheading && <p className="home-hero-sub">{hero.subheading}</p>}
-            {(hero.primaryBtnText || hero.secondaryBtnText) && (
-              <div className="home-hero-actions">
-                {hero.primaryBtnText && hero.primaryBtnLink && (
-                  <Link to={hero.primaryBtnLink} className="btn btn-primary">
-                    {hero.primaryBtnText} <ArrowRight size={16} />
-                  </Link>
-                )}
-                {hero.secondaryBtnText && hero.secondaryBtnLink && (
-                  <Link to={hero.secondaryBtnLink} className="btn btn-secondary">
-                    {hero.secondaryBtnText}
-                  </Link>
-                )}
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+            <div className="container home-hero-inner">
+              {hero.badge && (
+                <span className="badge badge-gold home-hero-badge">
+                  {hero.badge}
+                </span>
+              )}
+              {hero.heading && (
+                <h1 className="home-hero-title">{hero.heading}</h1>
+              )}
+              {hero.subheading && (
+                <p className="home-hero-sub">{hero.subheading}</p>
+              )}
+              {(hero.primaryBtnText || hero.secondaryBtnText) && (
+                <div className="home-hero-actions">
+                  {hero.primaryBtnText && hero.primaryBtnLink && (
+                    <Link to={hero.primaryBtnLink} className="btn btn-primary">
+                      {hero.primaryBtnText} <ArrowRight size={16} />
+                    </Link>
+                  )}
+                  {hero.secondaryBtnText && hero.secondaryBtnLink && (
+                    <Link
+                      to={hero.secondaryBtnLink}
+                      className="btn btn-secondary"
+                    >
+                      {hero.secondaryBtnText}
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="home-hero-placeholder" aria-hidden="true" />
+        )}
+      </section>
 
       {hasCategoriesContent && (
         <section
           ref={categoriesRef}
           className={`home-section home-section--white reveal-section reveal-categories${
-            categoriesInView ? ' in-view' : ''
+            categoriesInView ? " in-view" : ""
           }`}
         >
           <div className="container">
@@ -436,7 +490,7 @@ export default function Home() {
         <section
           ref={featuredRef}
           className={`home-section home-section--secondary reveal-section${
-            featuredInView ? ' in-view' : ''
+            featuredInView ? " in-view" : ""
           }`}
         >
           <div className="container">
@@ -450,7 +504,10 @@ export default function Home() {
                 )}
               </div>
               {featuredSection.ctaText && featuredSection.ctaLink && (
-                <Link to={featuredSection.ctaLink} className="btn btn-secondary btn-sm">
+                <Link
+                  to={featuredSection.ctaLink}
+                  className="btn btn-secondary btn-sm"
+                >
                   {featuredSection.ctaText} <ArrowRight size={14} />
                 </Link>
               )}
@@ -474,7 +531,7 @@ export default function Home() {
       {hasBrandContent && (
         <section
           ref={brandRef}
-          className={`home-brand reveal-section${brandInView ? ' in-view' : ''}`}
+          className={`home-brand reveal-section${brandInView ? " in-view" : ""}`}
         >
           <div className="container home-brand-inner">
             <div className="home-brand-text">
@@ -513,12 +570,18 @@ export default function Home() {
       <HomeReviewsSection />
 
       <style>{`
-        /* Homepage wrapper — pull up behind fixed navbar */
+        /* ---------------------------------------------------------------
+           Homepage wrapper
+           --------------------------------------------------------------- */
         .home {
-          margin-top: -110px;
+          --navbar-offset: 110px;
+          margin-top: calc(-1 * var(--navbar-offset));
+          position: relative;
         }
 
-        /* Hero */
+        /* ---------------------------------------------------------------
+           Hero section
+           --------------------------------------------------------------- */
         .home-hero {
           position: relative;
           height: 100vh;
@@ -531,10 +594,30 @@ export default function Home() {
           align-items: center;
           border-bottom: 1px solid var(--border-light);
           overflow: hidden;
-          padding-top: 110px;
+          padding-top: var(--navbar-offset);
           box-sizing: border-box;
+          scroll-margin-top: 0;
         }
 
+        body:has(.navbar-header.has-announcement) .home-hero {
+          padding-top: calc(var(--navbar-offset) + 30px);
+        }
+
+        .home-hero-placeholder {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            135deg,
+            var(--bg-secondary) 0%,
+            var(--bg-tertiary) 100%
+          );
+        }
+
+        /* ---------------------------------------------------------------
+           Hero slider
+           --------------------------------------------------------------- */
         .hero-slider {
           position: absolute;
           inset: 0;
@@ -590,8 +673,8 @@ export default function Home() {
           position: absolute;
           inset: 0;
           width: 100%;
-         height: 100%;
-         object-position: center center;
+          height: 100%;
+          object-position: center center;
           object-fit: fill;
         }
 
@@ -634,6 +717,9 @@ export default function Home() {
           transform: scale(1.4);
         }
 
+        /* ---------------------------------------------------------------
+           Hero text
+           --------------------------------------------------------------- */
         .home-hero-inner {
           position: relative;
           z-index: 4;
@@ -688,7 +774,9 @@ export default function Home() {
           to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* Section shells */
+        /* ---------------------------------------------------------------
+           Section shells
+           --------------------------------------------------------------- */
         .home-section {
           padding: 5rem 0;
           border-bottom: 1px solid var(--border-light);
@@ -719,7 +807,9 @@ export default function Home() {
           line-height: 1.18;
         }
 
-        /* Scroll-reveal */
+        /* ---------------------------------------------------------------
+           Scroll-reveal
+           --------------------------------------------------------------- */
         .reveal-section {
           opacity: 0;
           transform: translateY(32px);
@@ -804,7 +894,9 @@ export default function Home() {
           transition-delay: 0.05s;
         }
 
-        /* Categories grid */
+        /* ---------------------------------------------------------------
+           Categories grid
+           --------------------------------------------------------------- */
         .home-categories {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
@@ -877,7 +969,9 @@ export default function Home() {
           opacity: 0.85;
         }
 
-        /* Featured section header */
+        /* ---------------------------------------------------------------
+           Featured section header
+           --------------------------------------------------------------- */
         .home-featured-header {
           display: flex;
           justify-content: space-between;
@@ -897,7 +991,9 @@ export default function Home() {
           padding: 4rem;
         }
 
-        /* Brand story */
+        /* ---------------------------------------------------------------
+           Brand story
+           --------------------------------------------------------------- */
         .home-brand {
           background-color: #FFFFFF;
           color: var(--text-primary);
@@ -958,7 +1054,9 @@ export default function Home() {
           display: block;
         }
 
-        /* Responsive */
+        /* ---------------------------------------------------------------
+           Responsive — 900px (tablet)
+           --------------------------------------------------------------- */
         @media (max-width: 900px) {
           .home-brand-inner {
             grid-template-columns: 1fr;
@@ -986,38 +1084,13 @@ export default function Home() {
           }
         }
 
+        /* ---------------------------------------------------------------
+           Responsive — 640px (mobile)
+           Only component-level rules. Hero padding is intentionally
+           NOT touched here — it's controlled by the base rules above
+           so the hero always clears the header regardless of viewport.
+           --------------------------------------------------------------- */
         @media (max-width: 640px) {
-          .home {
-            margin-top: -94px;
-          }
-
-          .home-hero {
-            height: auto;
-            min-height: 100svh;
-            max-height: none;
-            padding-top: 94px;
-            padding-bottom: 3rem;
-          }
-
-          .home-hero-inner {
-            padding: 2.5rem 1rem;
-          }
-
-          .home-hero-sub {
-            font-size: 0.92rem;
-            margin-bottom: 1.75rem;
-          }
-
-          .home-hero-actions {
-            flex-direction: column;
-            align-items: stretch;
-          }
-
-          .home-hero-actions .btn {
-            width: 100%;
-            justify-content: center;
-          }
-
           .home-section {
             padding: 3rem 0;
           }
@@ -1073,6 +1146,9 @@ export default function Home() {
           }
         }
 
+        /* ---------------------------------------------------------------
+           Responsive — 400px (small phones)
+           --------------------------------------------------------------- */
         @media (max-width: 400px) {
           .home-hero-title {
             font-size: 1.9rem;
@@ -1091,6 +1167,9 @@ export default function Home() {
           }
         }
 
+        /* ---------------------------------------------------------------
+           Reduced motion
+           --------------------------------------------------------------- */
         @media (prefers-reduced-motion: reduce) {
           .home-hero-badge,
           .home-hero-title,

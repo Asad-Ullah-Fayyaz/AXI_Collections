@@ -104,7 +104,7 @@ function Layout({ children }) {
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ScrollToTop />
         <Layout>
           <Routes>
