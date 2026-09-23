@@ -31,3 +31,5 @@ Thumbs.db
 # Uploads (user content)
 backend/uploads/
 backend/superAdmin.txt
+
+axi_collection_secrets
