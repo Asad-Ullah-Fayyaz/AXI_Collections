@@ -62,6 +62,25 @@ every run; set `SEED_CUSTOMER_PASSWORD` in `backend/.env` to pin it across re-se
 The seeder refuses to run when `NODE_ENV=production`, because it deletes every user,
 category, and product first.
 
+When upgrading an existing database, back it up and pause category writes, then run
+the migration in dry-run mode first from the repository root:
+
+```powershell
+Push-Location backend
+node src/scripts/migrateCategoryUniqueness.js --dry-run
+Pop-Location
+```
+
+The migration checks for duplicate sibling names before changing indexes. It stops
+without deleting categories if conflicts need attention, replaces any obsolete
+global unique index on `name` with a case-insensitive `(level, parent, name)` unique
+index, and trims existing category names. Review the reported database, collection,
+and index plan before applying it without `--dry-run`. Globally unique slugs are
+retained for legacy links.
+
+After reviewing the plan and confirming the backup, apply it with the same commands
+but omit `--dry-run`.
+
 **5. Sign in.** Customers use `/login`. Administrators use a separate page at
 `/admin/login`, which is not linked from anywhere on the storefront and is not
 offered on the customer login form. Signing in with a customer account at
@@ -105,6 +124,8 @@ Run from the repository root:
 
 The frontend also has `npm run lint --prefix frontend` and
 `npm run preview --prefix frontend`.
+Backend tests run with `npm test --prefix backend`. Database integration tests use
+an isolated MongoDB database configured through `MONGODB_TEST_URI`.
 
 ---
 
@@ -118,8 +139,10 @@ backend/
     middleware/   auth, validation, uploads, error handling
     models/       Mongoose schemas
     routes/       route definitions
+    scripts/      database maintenance scripts
     services/     email
     utils/        logger, order-ID generation, seed script
+  test/           Node.js tests; Mongo integration coverage uses MONGODB_TEST_URI
   uploads/        user-uploaded product images (gitignored)
 
 frontend/

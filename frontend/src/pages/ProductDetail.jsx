@@ -245,7 +245,7 @@ export default function ProductDetail() {
             .map((category) => (
               <React.Fragment key={category._id}>
                 <ChevronRight size={12} />
-                <Link to={`/products?category=${category.slug}`}>{category.name}</Link>
+                <Link to={`/products?category=${category._id}`}>{category.name}</Link>
               </React.Fragment>
             ))}
         <ChevronRight size={12} />

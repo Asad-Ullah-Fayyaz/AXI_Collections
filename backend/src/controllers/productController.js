@@ -128,7 +128,9 @@ exports.getProducts = async (req, res, next) => {
     }
 
     if (category) {
-      const catObj = await Category.findOne({ slug: category, isActive: true });
+      const catObj = /^[a-f\d]{24}$/i.test(category)
+        ? await Category.findOne({ _id: category, isActive: true })
+        : await Category.findOne({ slug: category, isActive: true });
       if (!catObj) {
         return res.status(200).json({
           success: true,
@@ -139,7 +141,11 @@ exports.getProducts = async (req, res, next) => {
           products: []
         });
       }
-      query.category = { $in: await getCategorySubtreeIds(catObj) };
+      const subtreeIds = await getCategorySubtreeIds(catObj);
+      const activeIds = new Set(activeCategoryIds.map((id) => id.toString()));
+      query.category = {
+        $in: subtreeIds.filter((id) => activeIds.has(id.toString()))
+      };
     }
 
     if (minPrice || maxPrice) {

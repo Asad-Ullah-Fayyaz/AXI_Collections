@@ -459,7 +459,7 @@ export default function Home() {
                 {categories.map((cat) => (
                   <Link
                     key={cat._id}
-                    to={`/products?category=${cat.slug}`}
+                    to={`/products?category=${cat._id}`}
                     className="category-card"
                   >
                     {cat.image && (

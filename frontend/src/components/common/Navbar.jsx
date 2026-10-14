@@ -143,7 +143,7 @@ export default function Navbar() {
   const pushMobileNode = (node) => {
     if (!hasChildren(node)) {
       // No children → navigate instead of pushing
-      navigate(`/products?category=${node.slug}`);
+      navigate(`/products?category=${node._id}`);
       setIsMobileMenuOpen(false);
       return;
     }
@@ -330,7 +330,7 @@ export default function Navbar() {
                 onMouseLeave={closeDropdown}
               >
                 <Link
-                  to={`/products?category=${cat.slug}`}
+                  to={`/products?category=${cat._id}`}
                   style={{
                     fontSize: '0.75rem',
                     fontWeight: 600,
@@ -375,7 +375,7 @@ export default function Navbar() {
                             style={{ position: 'relative' }}
                           >
                             <Link
-                              to={`/products?category=${l2.slug}`}
+                              to={`/products?category=${l2._id}`}
                               className="mega-panel-link"
                               style={{
                                 display: 'flex',
@@ -417,7 +417,7 @@ export default function Navbar() {
                                 {l2.children.map((l3) => (
                                   <Link
                                     key={l3._id}
-                                    to={`/products?category=${l3.slug}`}
+                                    to={`/products?category=${l3._id}`}
                                     className="mega-panel-link"
                                     style={{
                                       display: 'block',
@@ -830,7 +830,7 @@ export default function Navbar() {
 
                 {/* Also allow viewing all products in this category */}
                 <Link
-                  to={`/products?category=${currentMobileNode.slug}`}
+                  to={`/products?category=${currentMobileNode._id}`}
                   onClick={() => setIsMobileMenuOpen(false)}
                   style={{
                     display: 'flex',
